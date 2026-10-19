@@ -3,6 +3,7 @@ import {
   addArrangementItem,
   addSection,
   duplicateSection,
+  cyclesToBars,
   locatePlayhead,
   moveArrangementItem,
   msUntilNextBar,
@@ -100,10 +101,16 @@ describe('song editing (TASK-25)', () => {
     expect(locatePlayhead(song, 10)).toMatchObject({ itemIndex: 0, barInSong: 0 });
   });
 
+  it('cyclesToBars converts scheduler time into bars using the BPM (cps 0.5)', () => {
+    // 120 bpm: 1 scheduler cycle = 1 bar; 60 bpm: 2 cycles per bar
+    expect(cyclesToBars(3, 120)).toBe(3);
+    expect(cyclesToBars(3, 60)).toBe(1.5);
+  });
+
   it('msUntilNextBar waits for the bar line, minus the lead, and never goes negative', () => {
-    // 120 bpm: a beat is 500 ms; at 1 beat into the bar, 3 beats remain
-    expect(msUntilNextBar(1, 120, 150)).toBe(1350);
-    expect(msUntilNextBar(3.95, 120, 150)).toBe(0);
+    // 120 bpm: a bar is 2000 ms; a quarter into the bar, 1500 ms remain
+    expect(msUntilNextBar(2.25, 120, 150)).toBe(1350);
+    expect(msUntilNextBar(2.95, 120, 150)).toBe(0);
     expect(msUntilNextBar(0, 120)).toBe(0);
   });
 });

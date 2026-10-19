@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSessionStore } from '@store/sessionStore';
 import { useStrudelContext } from '@features/audio';
-import { cyclesToBars, locatePlayhead, type PlayheadPosition } from '@lib/song';
+import { cyclesToBars, locatePlayhead, schedulerCps, type PlayheadPosition } from '@lib/song';
 
 /**
  * Posición de reproducción (bloque del arreglo, sección, compás y paso) leída del reloj
@@ -37,9 +37,10 @@ export function usePlayhead(): PlayheadPosition | null {
         cycles = 0;
       }
       // Sin reloj de Strudel (motor aún arrancando) se estima desde el inicio de la reproducción.
-      if (!(cycles > 0)) cycles = ((performance.now() - startedAt) / 60000) * bpm;
+      const cps = schedulerCps();
+      if (!(cycles > 0)) cycles = ((performance.now() - startedAt) / 1000) * cps;
 
-      const next = locatePlayhead({ bpm, stepsPerBar, sections, arrangement }, cyclesToBars(cycles));
+      const next = locatePlayhead({ bpm, stepsPerBar, sections, arrangement }, cyclesToBars(cycles, bpm, cps));
       const key = next ? `${next.barInSong}:${next.stepInBar}` : '';
       if (key !== lastKey.current) {
         lastKey.current = key;

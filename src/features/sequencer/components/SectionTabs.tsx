@@ -56,6 +56,7 @@ export function SectionTabs({ playingSectionId = null }: SectionTabsProps) {
               <input
                 key={section.id}
                 autoFocus
+                onFocus={(event) => event.currentTarget.select()}
                 aria-label={t('song.renameLabel')}
                 value={draftName}
                 maxLength={32}
@@ -83,7 +84,7 @@ export function SectionTabs({ playingSectionId = null }: SectionTabsProps) {
                   'flex h-7 items-center gap-1.5 rounded-[4px] border px-3 text-[11px] transition-all',
                   selected
                     ? 'border-[var(--border-active)] bg-[rgba(0,255,200,0.08)] text-[var(--cyan)]'
-                    : 'border-[var(--border)] text-[var(--text-dim)] hover:text-[var(--text)]',
+                    : 'border-[var(--border)] bg-transparent text-[var(--text-dim)] hover:text-[var(--text)]',
                 ].join(' ')}
               >
                 {playing && (

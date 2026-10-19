@@ -5,7 +5,7 @@ import { Play, Square } from 'lucide-react';
 import { useSessionStore } from '@store/sessionStore';
 import { useTranslation } from '@lib/i18n';
 import { useStrudelContext } from '@features/audio';
-import { msUntilNextBar } from '@lib/song';
+import { cyclesToBars, msUntilNextBar, schedulerCps } from '@lib/song';
 
 interface PlayControlsProps {
   disabled?: boolean;
@@ -58,7 +58,8 @@ export function PlayControls({ disabled = false, disabledReason }: PlayControlsP
     let wait = 0;
     if (syncedCode.current) {
       try {
-        wait = msUntilNextBar(getHapState?.().getTime() ?? 0, useSessionStore.getState().bpm);
+        const { bpm } = useSessionStore.getState();
+        wait = msUntilNextBar(cyclesToBars(getHapState?.().getTime() ?? 0, bpm, schedulerCps()), bpm);
       } catch {
         wait = 0;
       }

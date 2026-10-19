@@ -133,7 +133,7 @@ export function ArrangementStrip({ playhead }: ArrangementStripProps) {
         <li className="flex items-center">
           <button
             type="button"
-            className="h-7 rounded-[4px] border border-dashed border-[var(--border)] px-3 text-[11px] text-[var(--text-dim)] transition-all hover:border-[var(--border-active)] hover:text-[var(--text)]"
+            className="h-7 rounded-[4px] border border-dashed border-[var(--border)] bg-transparent px-3 text-[11px] text-[var(--text-dim)] transition-all hover:border-[var(--border-active)] hover:text-[var(--text)]"
             onClick={() => addArrangementItem(activeSectionId)}
           >
             + {t('song.addBlock')}

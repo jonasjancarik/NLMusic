@@ -47,27 +47,41 @@ export function locatePlayhead(song: Song, bars: number): PlayheadPosition | nul
   return null;
 }
 
-/**
- * Con `.slow(4).cpm(bpm)` (ver compileSong) un ciclo del reloj de Strudel es una negra,
- * así que un compás 4/4 son 4 ciclos.
- */
-export const CYCLES_PER_BAR = 4;
+/** Ciclos por segundo por defecto del scheduler de Strudel. */
+export const DEFAULT_CPS = 0.5;
 
-/** Convierte el tiempo del scheduler de Strudel (en ciclos) en compases desde el inicio del arreglo. */
-export function cyclesToBars(cycles: number): number {
-  return cycles / CYCLES_PER_BAR;
+/**
+ * Ciclos por segundo reales del scheduler (`getCps` global de Strudel si existe).
+ * La canción compilada es `….slow(4).cpm(bpm)`: el scheduler siempre corre a su cps y
+ * el BPM se aplica acelerando el patrón, así que el tiempo del scheduler solo se
+ * convierte en compases conociendo el BPM y el cps.
+ */
+export function schedulerCps(): number {
+  const getCps = (globalThis as { getCps?: () => number }).getCps;
+  const value = typeof getCps === 'function' ? getCps() : DEFAULT_CPS;
+  return Number.isFinite(value) && value > 0 ? value : DEFAULT_CPS;
+}
+
+/**
+ * Convierte el tiempo del scheduler de Strudel (en ciclos) en compases 4/4 desde el inicio
+ * del arreglo: el patrón va `bpm / 60 / cps` veces más rápido que el reloj y un compás
+ * son 4 ciclos del patrón lento.
+ */
+export function cyclesToBars(cycles: number, bpm: number, cps: number = DEFAULT_CPS): number {
+  return (cycles * bpm) / (240 * cps);
 }
 
 /**
  * Milisegundos hasta el siguiente cambio de compás, restando `leadMs` para que el código
  * nuevo ya esté evaluado cuando Strudel consulte el compás siguiente (BR-001: se cambia el
- * patrón sin parar el reloj). Devuelve 0 si ya no da tiempo; el cambio entra entonces en el
- * compás que siga.
+ * patrón sin parar el reloj). Devuelve 0 si no se conoce la posición o ya no da tiempo; el
+ * cambio entra entonces en cuanto se evalúa.
+ * @param barPosition - compases desde el inicio del arreglo (ver cyclesToBars)
  */
-export function msUntilNextBar(timeCycles: number, bpm: number, leadMs = 150): number {
-  if (!Number.isFinite(timeCycles) || timeCycles <= 0 || bpm <= 0) return 0;
-  const intoBar = timeCycles % CYCLES_PER_BAR;
-  const remainingCycles = intoBar === 0 ? 0 : CYCLES_PER_BAR - intoBar;
-  const ms = remainingCycles * (60000 / bpm) - leadMs;
+export function msUntilNextBar(barPosition: number, bpm: number, leadMs = 150): number {
+  if (!Number.isFinite(barPosition) || barPosition <= 0 || bpm <= 0) return 0;
+  const intoBar = barPosition % 1;
+  const remaining = intoBar === 0 ? 0 : 1 - intoBar;
+  const ms = remaining * (240000 / bpm) - leadMs;
   return ms > 0 ? ms : 0;
 }
