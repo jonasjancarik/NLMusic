@@ -131,6 +131,8 @@ Si la task introdujo cambios estructurales (nuevas dependencias, nuevos director
 - System prompt LLM con referencia de `params` y semántica de merge (TASK-21)
 - Modelo de canción por secciones (TASK-24): `Song`/`Section`/`ArrangementItem` y `Track.velocity`; `validateSong` con errores que nombran sección y pista; `compileSong` con `arrange`; voces de batería con su sample real; persistencia v1 (`song` + `activeSectionId`) con migración desde v0; BR-006 pasa a 8 pistas por sección. La UI y el LLM siguen trabajando sobre la sección activa (`main` por defecto); `tracks` del store es un espejo de esa sección
 
+- LLM de canciones de batería (TASK-27): el LLM devuelve un delta de canción (`replaceSong`, `addSection`, `updateSection`, `removeSection`, `setArrangement` y las operaciones de pista con `sectionId` opcional) con pasos en notación compacta (`X.x.g...|`); guía de batería como string importable; hasta 2 reintentos automáticos con los errores concretos y luego ERROR (422); prompt de sistema cacheable; `npm run eval:songs` fuera de `npm test`
+
 **Pendiente Sprint 2 (orden de ejecución):**
 - TASK-11 — Hap highlighting en tiempo real (flash de tokens al sonar) sobre el editor CodeMirror
 
@@ -162,3 +164,10 @@ con dependencias y criterios de revisión está en `.claude/tasks/TASK-INDEX.md`
 - `src/lib/strudel/compiler.ts` — compilador movido desde `src/features/audio/compiler.ts` (que ahora lo reexporta)
 - `src/store/persistence.ts` — versión de persistencia, `migrate` y `merge` del estado guardado
 - Modelo de datos: el tracks slice añade `stepsPerBar`, `sections`, `arrangement`, `activeSectionId`, `loadSong`, `setActiveSection`; el estado persistido pasa a `{ song, activeSectionId, ... }` (versión 1)
+
+**Nuevos directorios/archivos (TASK-27):**
+- `src/lib/llm/prompts/drumGuide.ts`, `drumGuideExamples.ts`, `songContract.ts` — guía de batería, ejemplos validados y contrato de salida como strings sin dependencias de Next/React (los reutiliza el MCP de TASK-28); `songPrompt.ts` — bloques de sistema y mensaje de usuario
+- `src/lib/llm/songDelta.ts` (parseo y aplicación del delta), `src/lib/llm/songPipeline.ts` (pipeline con reintentos), `src/lib/llm/parseJson.ts`
+- `src/lib/song/notation.ts` — notación compacta de pasos ↔ `steps`/`velocity`
+- `scripts/eval-songs.ts` + `evals/README.md` — set de evaluación; los resultados (`evals/<fecha>/`) están en `.gitignore`
+- Modelo de datos: `SessionContext` añade `song` y `activeSectionId`; el tracks slice añade `loadGeneratedSong`; la API responde `{ song, activeSectionId, strudelCode }` en lugar de `trackJson`
