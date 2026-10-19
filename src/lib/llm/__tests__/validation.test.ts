@@ -124,3 +124,43 @@ describe('validatePatternDelta — BR-004 incremental operations', () => {
     ).toThrow()
   })
 })
+
+describe('TASK-19: TrackParams validation', () => {
+  it('acepta un track sin params (retrocompatibilidad)', () => {
+    const result = validateTrackJson({ bpm: 120, tracks: [minimalTrack] })
+    expect(result.tracks[0].params).toBeUndefined()
+  })
+
+  it('acepta params parciales (todos los campos son opcionales)', () => {
+    const result = validateTrackJson({
+      bpm: 120,
+      tracks: [{ ...minimalTrack, params: { room: 0.5 } }],
+    })
+    expect(result.tracks[0].params).toEqual({ room: 0.5 })
+  })
+
+  it('rechaza delayfeedback >= 1', () => {
+    expect(() =>
+      validateTrackJson({
+        bpm: 120,
+        tracks: [{ ...minimalTrack, params: { delayfeedback: 1.0 } }],
+      }),
+    ).toThrow()
+  })
+
+  it('rechaza filterQ > 20', () => {
+    expect(() =>
+      validateTrackJson({
+        bpm: 120,
+        tracks: [{ ...minimalTrack, params: { filterQ: 25 } }],
+      }),
+    ).toThrow()
+  })
+
+  it('acepta patch de update con params parcial', () => {
+    const result = validatePatternDelta({
+      operations: [{ type: 'update', id: 'kick-1', patch: { params: { room: 0.6 } } }],
+    })
+    expect(result.operations[0]).toMatchObject({ patch: { params: { room: 0.6 } } })
+  })
+})

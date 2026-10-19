@@ -31,6 +31,7 @@ interface PersistedState {
   highlightingEnabled: boolean;
   hapVisualizationEnabled: boolean;
   language: Language;
+  delayTimeMode: SessionStore["delayTimeMode"];
 }
 
 export const useSessionStore = create<SessionStore>()(
@@ -54,6 +55,7 @@ export const useSessionStore = create<SessionStore>()(
           highlightingEnabled: state.highlightingEnabled,
           hapVisualizationEnabled: state.hapVisualizationEnabled,
           language: state.language,
+          delayTimeMode: state.delayTimeMode,
         }),
       },
     ),

@@ -2,7 +2,12 @@ import type { StateCreator } from "zustand";
 import { deriveUiState, type ActiveTab, type UiState } from "../helpers";
 import type { SessionStore } from "../sessionStore";
 
+export type DelayTimeMode = "free" | "musical";
+
 export type UiSlice = {
+  /** BR-NEW-004: preferencia global; el valor guardado en params.delaytime siempre es numérico. */
+  delayTimeMode: DelayTimeMode;
+  setDelayTimeMode: (mode: DelayTimeMode) => void;
   activeTab: ActiveTab;
   uiState: UiState;
   lastError: string | null;
@@ -28,12 +33,15 @@ export const createUiSlice: StateCreator<
   UiSlice
 > = (set, get) => ({
   activeTab: "sequencer",
+  delayTimeMode: "musical",
   uiState: "paused",
   lastError: null,
   lastPrompt: null,
   promptDraft: null,
 
   setActiveTab: (tab) => set({ activeTab: tab }),
+
+  setDelayTimeMode: (mode) => set({ delayTimeMode: mode }),
 
   // BR-003: submit o retry entra en LOADING sin perder el patrón actual.
   /**

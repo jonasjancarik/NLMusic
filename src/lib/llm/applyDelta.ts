@@ -36,7 +36,16 @@ export function applyDelta(current: TrackJSON, delta: PatternDelta): ApplyDeltaR
         // BR-005: referencia a pista inexistente → warning, no fail
         warnings.push(`Pista '${op.id}' no encontrada — operación de actualización ignorada.`);
       } else {
-        tracks = tracks.map((t) => (t.id === op.id ? { ...t, ...op.patch } : t));
+        // TASK-19: params se fusionan campo a campo; el resto del patch reemplaza.
+        tracks = tracks.map((t) =>
+          t.id === op.id
+            ? {
+                ...t,
+                ...op.patch,
+                ...(op.patch.params ? { params: { ...t.params, ...op.patch.params } } : {}),
+              }
+            : t,
+        );
       }
     } else if (op.type === "remove") {
       const exists = tracks.some((t) => t.id === op.id);

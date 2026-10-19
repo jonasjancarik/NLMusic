@@ -3,6 +3,27 @@ import { z } from "zod";
 const stepSchema = z.union([z.literal(0), z.literal(1)]);
 
 /**
+ * Parámetros de síntesis opcionales por pista.
+ * @see BR-NEW-003 delayfeedback tiene tope 0.9 para evitar bucles infinitos de audio
+ */
+const trackParamsSchema = z.object({
+  synth: z.enum(['sample', 'sine', 'sawtooth', 'square', 'triangle']).optional(),
+  note: z.string().optional(),
+  attack: z.number().min(0).max(2).optional(),
+  decay: z.number().min(0).max(0.5).optional(),
+  sustain: z.number().min(0).max(1).optional(),
+  release: z.number().min(0).max(2).optional(),
+  filterType: z.enum(['lp', 'hp']).optional(),
+  filterCutoff: z.number().min(20).max(20000).optional(),
+  filterQ: z.number().min(0).max(20).optional(),
+  room: z.number().min(0).max(1).optional(),
+  delay: z.number().min(0).max(1).optional(),
+  delaytime: z.number().min(0).max(1).optional(),
+  delayfeedback: z.number().min(0).max(0.9).optional(),
+  pan: z.number().min(0).max(1).optional(),
+});
+
+/**
  * Contrato mínimo de una pista aceptada desde el LLM.
  * `tag` permanece opcional para conservar compatibilidad con respuestas antiguas sin perderlo cuando sí llega.
  * @see BR-002
@@ -15,7 +36,8 @@ const trackSchema = z.object({
   steps: z.array(stepSchema).length(16),
   volume: z.number().min(0).max(1),
   muted: z.boolean(),
-  solo: z.boolean()
+  solo: z.boolean(),
+  params: trackParamsSchema.optional()
 });
 
 export const trackJsonSchema = z.object({
