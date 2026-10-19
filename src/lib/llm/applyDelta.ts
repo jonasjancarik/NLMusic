@@ -1,4 +1,5 @@
 import type { Track, TrackJSON, PatternDelta } from "@lib/types";
+import { MAX_TRACKS_PER_SECTION, reconcileVelocity } from "@lib/song";
 
 export interface ApplyDeltaResult {
   next: TrackJSON;
@@ -11,7 +12,7 @@ export interface ApplyDeltaResult {
  *
  * @see BR-004 Añadir no destruye pistas existentes
  * @see BR-005 Referencias a pistas inexistentes → warning, no error
- * @see BR-006 Máximo 5 pistas tras aplicar el delta
+ * @see BR-006 Máximo MAX_TRACKS_PER_SECTION (8) pistas tras aplicar el delta
  * @see BR-001 El audio sigue sonando; Strudel actualiza en el siguiente ciclo
  */
 export function applyDelta(current: TrackJSON, delta: PatternDelta): ApplyDeltaResult {
@@ -21,10 +22,10 @@ export function applyDelta(current: TrackJSON, delta: PatternDelta): ApplyDeltaR
 
   for (const op of delta.operations) {
     if (op.type === "add") {
-      // BR-006: rechazar si ya hay 5 pistas
-      if (tracks.length >= 5) {
+      // BR-006: rechazar si ya se alcanzó el límite
+      if (tracks.length >= MAX_TRACKS_PER_SECTION) {
         warnings.push(
-          `No se puede añadir '${op.track.name}': límite de 5 pistas alcanzado (BR-006). Elimina una pista primero.`
+          `No se puede añadir '${op.track.name}': límite de ${MAX_TRACKS_PER_SECTION} pistas alcanzado (BR-006). Elimina una pista primero.`
         );
       } else {
         // BR-004: secuencial, añadir al final
@@ -37,15 +38,17 @@ export function applyDelta(current: TrackJSON, delta: PatternDelta): ApplyDeltaR
         warnings.push(`Pista '${op.id}' no encontrada — operación de actualización ignorada.`);
       } else {
         // TASK-19: params se fusionan campo a campo; el resto del patch reemplaza.
-        tracks = tracks.map((t) =>
-          t.id === op.id
-            ? {
-                ...t,
-                ...op.patch,
-                ...(op.patch.params ? { params: { ...t.params, ...op.patch.params } } : {}),
-              }
-            : t,
-        );
+        tracks = tracks.map((t) => {
+          if (t.id !== op.id) return t;
+          const next: Track = {
+            ...t,
+            ...op.patch,
+            ...(op.patch.params ? { params: { ...t.params, ...op.patch.params } } : {}),
+          };
+          // TASK-24: pasos nuevos no deben heredar una velocity 0 residual
+          const velocity = reconcileVelocity(next.steps, next.velocity);
+          return velocity ? { ...next, velocity } : next;
+        });
       }
     } else if (op.type === "remove") {
       const exists = tracks.some((t) => t.id === op.id);
@@ -56,12 +59,12 @@ export function applyDelta(current: TrackJSON, delta: PatternDelta): ApplyDeltaR
         tracks = tracks.filter((t) => t.id !== op.id);
       }
     } else if (op.type === "replace") {
-      if (op.tracks.length > 5) {
+      if (op.tracks.length > MAX_TRACKS_PER_SECTION) {
         warnings.push(
-          `Reemplazo propuso ${op.tracks.length} pistas; se mantuvieron 5 (BR-006).`
+          `Reemplazo propuso ${op.tracks.length} pistas; se mantuvieron ${MAX_TRACKS_PER_SECTION} (BR-006).`
         );
       }
-      tracks = op.tracks.slice(0, 5);
+      tracks = op.tracks.slice(0, MAX_TRACKS_PER_SECTION);
     }
   }
 

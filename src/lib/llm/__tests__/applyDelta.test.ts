@@ -84,10 +84,10 @@ describe('applyDelta — BR-004/BR-005/BR-006', () => {
     expect(result.warnings[0]).toContain('ghost-42')
   })
 
-  it('BR-006: add is rejected when pattern already has 5 tracks', () => {
+  it('BR-006: add is rejected when pattern already has 8 tracks', () => {
     const fullPattern: TrackJSON = {
       bpm: 138,
-      tracks: Array.from({ length: 5 }, (_, i) => ({
+      tracks: Array.from({ length: 8 }, (_, i) => ({
         id: `t-${i}`,
         name: `Track ${i}`,
         steps: [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0] as (0 | 1)[],
@@ -113,7 +113,7 @@ describe('applyDelta — BR-004/BR-005/BR-006', () => {
       ],
     })
 
-    expect(result.next.tracks).toHaveLength(5)
+    expect(result.next.tracks).toHaveLength(8)
     expect(result.warnings).toHaveLength(1)
     expect(result.warnings[0]).toContain('BR-006')
   })

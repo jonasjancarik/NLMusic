@@ -3,21 +3,22 @@
 import { useSessionStore } from '@store/sessionStore';
 import { useBeatClock } from '@features/audio';
 import { useTranslation } from '@lib/i18n';
+import { MAX_TRACKS_PER_SECTION } from '@lib/song';
 import { TrackCard } from './TrackCard';
 
 /**
  * Muestra las pistas activas y el contador de ocupación del secuenciador.
  * El contador permanece visible incluso en empty state para comunicar el límite global.
  *
- * @see BR-006 Máximo 5 pistas visibles en el secuenciador
- * @see EC-004 Al llegar a 5, el contador destaca el límite alcanzado
+ * @see BR-006 Máximo MAX_TRACKS_PER_SECTION (8) pistas por sección
+ * @see EC-004 Al llegar al límite, el contador lo destaca
  */
 export function TrackZone() {
   const t = useTranslation();
   const tracks = useSessionStore((s) => s.tracks);
   const isCodeManuallyEdited = useSessionStore((s) => s.isCodeManuallyEdited);
   const { step } = useBeatClock();
-  const atLimit = tracks.length >= 5;
+  const atLimit = tracks.length >= MAX_TRACKS_PER_SECTION;
 
   if (tracks.length === 0) {
     return (
@@ -28,7 +29,7 @@ export function TrackZone() {
             className="text-[10px] uppercase tracking-[0.1em]"
             style={{ color: atLimit ? 'var(--amber)' : 'var(--text-muted)' }}
           >
-            {t('tracks.counterLabel')}: {tracks.length} / 5
+            {t('tracks.counterLabel')}: {tracks.length} / {MAX_TRACKS_PER_SECTION}
           </span>
         </div>
         <div className="flex h-full min-h-[260px] flex-col items-center justify-center gap-3 opacity-25 pointer-events-none">
@@ -41,13 +42,13 @@ export function TrackZone() {
 
   return (
     <div className="flex h-full flex-col overflow-y-auto">
-      {/* EC-004: alcanzar 5 pistas cambia el contador a amber para señalar el límite. */}
+      {/* EC-004: alcanzar el límite de pistas cambia el contador a amber para señalar el límite. */}
       <div className="flex items-center justify-end px-5 pt-3 pb-1">
         <span
           className="text-[10px] uppercase tracking-[0.1em]"
           style={{ color: atLimit ? 'var(--amber)' : 'var(--text-muted)' }}
         >
-          {t('tracks.counterLabel')}: {tracks.length} / 5
+          {t('tracks.counterLabel')}: {tracks.length} / {MAX_TRACKS_PER_SECTION}
         </span>
       </div>
       {/* BR-009: "modo código" — grid may not reflect manually edited Strudel code */}

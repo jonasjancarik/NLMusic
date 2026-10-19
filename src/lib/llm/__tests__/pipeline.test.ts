@@ -184,13 +184,13 @@ describe('pipeline — runV0Pipeline', () => {
       expect(result.trackJson.tracks).toHaveLength(1) // unchanged
     })
 
-    it('EC-005/BR-006: replace with > 5 tracks truncates and adds warning', async () => {
+    it('EC-005/BR-006: replace with > 8 tracks truncates and adds warning', async () => {
       vi.mocked(mockProvider.generatePattern).mockResolvedValueOnce({
         bpm: 120,
         operations: [
           {
             type: 'replace',
-            tracks: Array.from({ length: 6 }, (_, i) => ({
+            tracks: Array.from({ length: 9 }, (_, i) => ({
               id: `track-${i}`,
               name: `Track ${i}`,
               steps: Array(16).fill(0) as (0 | 1)[],
@@ -206,12 +206,12 @@ describe('pipeline — runV0Pipeline', () => {
       const result = await runV0Pipeline(mockProvider, 'test', context)
 
       expect(result.usedFallback).toBe(false)
-      expect(result.trackJson.tracks).toHaveLength(5)
+      expect(result.trackJson.tracks).toHaveLength(8)
       expect(result.warnings).toBeDefined()
       expect(result.warnings!.some(w => w.includes('BR-006'))).toBe(true)
     })
 
-    it('BR-006: add when already at 5 tracks produces warning, no new track', async () => {
+    it('BR-006: add when already at 8 tracks produces warning, no new track', async () => {
       vi.mocked(mockProvider.generatePattern).mockResolvedValueOnce({
         operations: [
           {
@@ -221,9 +221,9 @@ describe('pipeline — runV0Pipeline', () => {
         ],
       })
 
-      const previous5Tracks = {
+      const previous8Tracks = {
         bpm: 138,
-        tracks: Array.from({ length: 5 }, (_, i) => ({
+        tracks: Array.from({ length: 8 }, (_, i) => ({
           id: `t-${i}`,
           name: `T${i}`,
           steps: Array(16).fill(0) as (0 | 1)[],
@@ -233,11 +233,11 @@ describe('pipeline — runV0Pipeline', () => {
         })),
       }
 
-      const context: SessionContext = { turns: [], previous: previous5Tracks }
+      const context: SessionContext = { turns: [], previous: previous8Tracks }
       const result = await runV0Pipeline(mockProvider, 'add track', context)
 
       expect(result.usedFallback).toBe(false)
-      expect(result.trackJson.tracks).toHaveLength(5) // unchanged
+      expect(result.trackJson.tracks).toHaveLength(8) // unchanged
       expect(result.warnings).toBeDefined()
     })
   })

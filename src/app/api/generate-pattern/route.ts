@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { ClaudeAdapter } from '@lib/llm/adapters/claude.adapter';
 import { runV0Pipeline } from '@lib/llm/pipeline';
 import type { SessionContext } from '@lib/types';
+import { trackParamsSchema } from '@lib/llm/validation';
+import { MAX_TRACKS_PER_SECTION } from '@lib/song';
 
 /**
  * Snapshot acotado de pistas previas aceptado por la API.
@@ -15,9 +17,12 @@ const previousTrackSchema = z.object({
   tag: z.string().max(50).optional(),
   sample: z.string().max(100).optional(),
   steps: z.array(z.union([z.literal(0), z.literal(1)])).length(16),
+  // TASK-24: sin velocity/params aquí, zod los descartaba y el delta los borraba al volver
+  velocity: z.array(z.number().min(0).max(1)).length(16).optional(),
   volume: z.number().min(0).max(1),
   muted: z.boolean(),
   solo: z.boolean(),
+  params: trackParamsSchema.optional(),
 });
 
 /**
@@ -35,7 +40,7 @@ const requestBodySchema = z.object({
     })).max(40).optional(),
     previous: z.object({
       bpm: z.number().int().min(60).max(220),
-      tracks: z.array(previousTrackSchema).max(5),
+      tracks: z.array(previousTrackSchema).max(MAX_TRACKS_PER_SECTION),
       strudelCode: z.string().max(5000).optional(),
     }).optional(),
     codeMode: z.object({

@@ -18,7 +18,7 @@ NLMusic convierte instrucciones musicales en lenguaje natural en patrones reprod
 ## Invariantes críticas
 
 - BR-001: el audio nunca se interrumpe durante generación o cambios incrementales.
-- BR-006: nunca superar 5 pistas.
+- BR-006: nunca superar 8 pistas por sección (`MAX_TRACKS_PER_SECTION` en `src/lib/song/constants.ts`).
 - BR-007: eliminar pista es destructivo e irreversible.
 - BR-008: editar el grid manualmente no invoca al LLM.
 - BR-009: grid y editor Strudel deben mantenerse coherentes.
@@ -33,6 +33,8 @@ NLMusic convierte instrucciones musicales en lenguaje natural en patrones reprod
 - `src/features/transport`: play, stop, BPM, barra superior
 - `src/features/code-view`: panel y editor Strudel
 - `src/lib/llm`: prompts, pipeline, adapters, validación
+- `src/lib/song`: modelo de canción por secciones (voces, validación, `compileSong`); puro, sin React/window/Zustand
+- `src/lib/strudel/compiler.ts`: compilador pista → Strudel (puro; `src/features/audio/compiler.ts` lo reexporta)
 - `src/store/sessionStore.ts`: estado global de sesión
 
 ## Cómo leer contexto según la tarea
@@ -127,6 +129,7 @@ Si la task introdujo cambios estructurales (nuevas dependencias, nuevos director
 - Sintetizador por pista: `TrackParams` opcional en `Track` (`src/lib/types/audio.ts`), validación Zod (`delayfeedback` ≤ 0.9), `delayTimeMode` en el ui slice (persistido), `applyDelta` fusiona `params` campo a campo (TASK-19)
 - Compilador con `buildParamsChain` (ADSR → filtro lp/hp con `lpq`/`hpq` → room → delay → pan; osciladores vía `note().s().struct()`), acción `updateTrackParams` en el tracks slice y hook `useUpdateTrackParams` sobre StrudelContext (TASK-20)
 - System prompt LLM con referencia de `params` y semántica de merge (TASK-21)
+- Modelo de canción por secciones (TASK-24): `Song`/`Section`/`ArrangementItem` y `Track.velocity`; `validateSong` con errores que nombran sección y pista; `compileSong` con `arrange`; voces de batería con su sample real; persistencia v1 (`song` + `activeSectionId`) con migración desde v0; BR-006 pasa a 8 pistas por sección. La UI y el LLM siguen trabajando sobre la sección activa (`main` por defecto); `tracks` del store es un espejo de esa sección
 
 **Pendiente Sprint 2 (orden de ejecución):**
 - TASK-11 — Hap highlighting en tiempo real (flash de tokens al sonar) sobre el editor CodeMirror
@@ -153,3 +156,9 @@ con dependencias y criterios de revisión está en `.claude/tasks/TASK-INDEX.md`
 **Nuevos directorios/archivos (TASK-19..21):**
 - `src/features/sequencer/hooks/useUpdateTrackParams.ts` — aplica un patch de params y re-evalúa el código si está sonando
 - `src/lib/llm/prompts/strudelInjection.ts` — referencia de `params` embebida como string e inyectada en `systemPrompt.ts`
+
+**Nuevos directorios/archivos (TASK-24):**
+- `src/lib/song/` — `constants.ts` (límites), `drumVoices.ts` (voces y spike de samples), `song.ts` (helpers), `validation.ts` (`validateSong`), `compileSong.ts`
+- `src/lib/strudel/compiler.ts` — compilador movido desde `src/features/audio/compiler.ts` (que ahora lo reexporta)
+- `src/store/persistence.ts` — versión de persistencia, `migrate` y `merge` del estado guardado
+- Modelo de datos: el tracks slice añade `stepsPerBar`, `sections`, `arrangement`, `activeSectionId`, `loadSong`, `setActiveSection`; el estado persistido pasa a `{ song, activeSectionId, ... }` (versión 1)

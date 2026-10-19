@@ -70,7 +70,7 @@ describe('ConfigTab TASK-12', () => {
     expect(screen.getByText('Estado del sistema')).toBeInTheDocument()
     expect(screen.getByText('○ No iniciado')).toBeInTheDocument()
     expect(screen.getByText('138')).toBeInTheDocument()
-    expect(screen.getByText('3 / 5')).toBeInTheDocument()
+    expect(screen.getByText('3 / 8')).toBeInTheDocument()
   })
 
   it('injects clicked prompt example into PromptBox and returns to Sequencer tab', async () => {

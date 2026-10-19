@@ -64,6 +64,7 @@ NLMusic convierte la intención musical expresada en lenguaje natural — abstra
 | CAP-NLM-010 | Guía de prompts (pestaña Configuración/Guía) | ✅ |
 | CAP-NLM-011 | Gestión de API key por el usuario | ⏳ v1 |
 | CAP-NLM-012 | Waveform en pestaña Strudel | ⏳ v1 |
+| CAP-NLM-015 | Canción con secciones (intro, verso, estribillo…), arreglo y velocidad por paso | ⏳ Sprint 4 (modelo: TASK-24) |
 
 ---
 
@@ -137,7 +138,7 @@ Usuario autenticado implícitamente — en el MVP, el propio autor del proyecto.
 | BR-003 | Cualquier error en la llamada al LLM (red, timeout, schema inválido) se trata de forma uniforme | RESTRICTION | Se mantiene el estado anterior, se informa al usuario y se ofrece la opción de reintentar |
 | BR-004 | Las pistas se crean siempre de forma secuencial, independientemente de si el usuario referencia un número de pista concreto | AUTOMATIC | Si el usuario dice "en la pista 5 añade un bombo" y no hay pistas, se crea la pista 1 |
 | BR-005 | Las referencias a pistas en el prompt solo tienen efecto si esa pista ya existe | VALIDATION | Si la pista referenciada no existe, se trata como error: se informa al usuario y no se realiza ningún cambio |
-| BR-006 | El número máximo de pistas es 5 | RESTRICTION | Si el usuario intenta añadir una sexta pista, se informa del límite y no se crea la pista |
+| BR-006 | El número máximo de pistas es 8 por sección (antes 5 en total; cambiado en TASK-24 para baterías completas). Con una sola sección equivale a 8 pistas en total | RESTRICTION | Si el usuario intenta añadir una novena pista a una sección, se informa del límite y no se crea la pista. Una canción con una sección de más de 8 pistas no pasa la validación |
 | BR-007 | Eliminar una pista es una acción destructiva e irreversible | RESTRICTION | No requiere confirmación. No existe deshacer en el MVP |
 | BR-008 | Editar el grid manualmente no invoca al LLM | AUTOMATIC | Los cambios se aplican localmente, se regenera el strudelCode desde el JSON, y el audio se actualiza en el siguiente ciclo |
 | BR-009 | El editor de código Strudel y el grid del secuenciador están sincronizados bidireccionalmente | RESTRICTION | Cualquier cambio en uno se refleja inmediatamente en el otro |
@@ -163,7 +164,7 @@ Usuario autenticado implícitamente — en el MVP, el propio autor del proyecto.
 | De | A | Trigger | Guard | Side effect |
 |---|---|---|---|---|
 | IDLE | LOADING | user.submit_prompt | Prompt no vacío | Mostrar indicador de carga en área principal; bloquear input |
-| LOADING | PLAYING | llm.response_ok | JSON válido, pistas ≤ 5 | Limpiar prompt; ocultar indicador; renderizar pista; arrancar audio |
+| LOADING | PLAYING | llm.response_ok | JSON válido, pistas ≤ 8 por sección | Limpiar prompt; ocultar indicador; renderizar pista; arrancar audio |
 | LOADING | ERROR | llm.response_error | Cualquier error (red, schema, timeout) | Ocultar indicador; desbloquear input; mantener prompt; mostrar error con opción de reintentar |
 | PLAYING | LOADING | user.submit_prompt | Prompt no vacío | Mostrar indicador no intrusivo; bloquear input; audio continúa |
 | PLAYING | PAUSED | user.stop | — | Detener audio; cursor se detiene; pistas permanecen |
@@ -187,7 +188,7 @@ Usuario autenticado implícitamente — en el MVP, el propio autor del proyecto.
 | EC-001 | El LLM devuelve JSON malformado o que no cumple el schema | Mantener estado anterior; informar al usuario; ofrecer reintento; prompt intacto |
 | EC-002 | Error de red durante la llamada al LLM | Mismo comportamiento que EC-001 |
 | EC-003 | El usuario referencia en el prompt una pista que no existe | Informar al usuario; no realizar ningún cambio; no invocar al LLM |
-| EC-004 | El usuario intenta añadir una pista cuando ya hay 5 | Informar del límite; no crear ninguna pista |
+| EC-004 | El usuario intenta añadir una pista cuando la sección ya tiene 8 | Informar del límite; no crear ninguna pista |
 | EC-005 | El LLM devuelve un prompt que requiere crear más pistas de las disponibles (ej: quedan 1 libre, el LLM quiere crear 3) | Informar al usuario del conflicto y dejarle decidir cómo proceder |
 | EC-006 | El usuario escribe código Strudel inválido en la pestaña de código | Capturar el error de Strudel e informar al usuario; si Strudel no lanza error, no hacer nada |
 | EC-007 | El usuario elimina la última pista mientras el sistema está en PLAYING | Detener audio; volver a IDLE; resetear secuenciador |
@@ -241,9 +242,9 @@ And se ofrece la opción de reintentar
 And el contenido del prompt permanece intacto
 ```
 
-**Scenario: Intento de crear una sexta pista**
+**Scenario: Intento de crear una novena pista en una sección**
 ```
-Given hay 5 pistas activas
+Given la sección activa tiene 8 pistas
 When el usuario escribe "añade una conga" y pulsa Enter
 Then no se crea ninguna pista nueva
 And se informa al usuario de que se ha alcanzado el límite de pistas
@@ -323,6 +324,40 @@ When el usuario pulsa ✕ en esa pista
 Then el audio se detiene
 And el secuenciador queda vacío
 And el sistema vuelve a IDLE
+```
+
+### CAP-NLM-015 · Canción con secciones
+
+**Scenario: Una sesión guardada antes de las secciones sigue sonando igual**
+```
+Given hay una sesión guardada con un patrón de 16 pasos (formato anterior)
+When el usuario recarga la app
+Then el patrón aparece como la sección "main" de 1 compás
+And al pulsar Play suena exactamente el mismo patrón
+```
+
+**Scenario: El arreglo reproduce las secciones en orden**
+```
+Given una canción con verso de 2 compases ×2 y estribillo de 1 compás ×4
+When el usuario pulsa Play
+Then suenan 4 compases de verso seguidos de 4 de estribillo
+And al terminar el arreglo vuelve a empezar desde el verso
+```
+
+**Scenario: Una canción inválida se rechaza con un error concreto**
+```
+Given una canción cuyo verso tiene 2 compases y una pista con 16 pasos
+When se valida la canción
+Then se rechaza
+And el error indica la sección, la pista y que hacen falta 32 pasos
+```
+
+**Scenario: Sustituir la canción mientras suena no corta el audio**
+```
+Given una canción está sonando
+When se carga otra canción
+Then el audio no se detiene
+And la nueva canción suena alineada con el reloj en curso
 ```
 
 ---
@@ -474,6 +509,33 @@ El LLM genera un JSON estructurado que alimenta simultáneamente el motor de aud
 ```
 
 Cuando el usuario modifica un paso en el grid o mueve un fader, se actualiza el JSON y se regenera el código Strudel automáticamente — **sin necesidad de llamar al LLM**.
+
+#### Canción por secciones (CAP-NLM-015, TASK-24)
+
+Desde TASK-24 la fuente de verdad es una canción (`Song` en `src/lib/types/audio.ts`):
+
+```json
+{
+  "bpm": 120,
+  "stepsPerBar": 16,
+  "sections": [
+    { "id": "verse", "name": "Verso", "bars": 2, "tracks": [ /* Track con 32 pasos */ ] },
+    { "id": "chorus", "name": "Estribillo", "bars": 1, "tracks": [ /* Track con 16 pasos */ ] }
+  ],
+  "arrangement": [
+    { "sectionId": "verse", "repeat": 2 },
+    { "sectionId": "chorus", "repeat": 4 }
+  ]
+}
+```
+
+- `stepsPerBar`: 16 (semicorcheas) o 12 (feel ternario). Compás 4/4 fijo. **v1: no se puede cambiar una vez creada la canción**; para cambiarlo hay que sustituir la canción entera (que vuelve a pasar la validación).
+- Cada pista tiene `stepsPerBar × bars` pasos y una `velocity` opcional (0–1, una por paso; si falta, 1 en cada paso activo). La velocity se multiplica por `volume` al sonar.
+- `bars` y `repeat`: 1–16. Como máximo 8 pistas por sección (BR-006). Ids de sección únicos; ids de pista únicos dentro de cada sección (el mismo id en varias secciones representa "la misma pista").
+- Voces de batería: `bd, sd, rim, cp, hh, oh, rd, cr, lt, mt, ht` (`src/lib/song/drumVoices.ts`, con el sample real de cada una).
+- Compilación: cada sección es un `stack` de sus pistas y el arreglo usa `arrange([repeat × bars, sección], …)`. Una canción de una sola sección de 1 compás genera el mismo código que antes.
+- Solo: si alguna pista está en solo, suenan solo las pistas con ese id en todas las secciones. Mute es por sección.
+- Un patrón antiguo (`{ bpm, tracks }`) se migra a una canción con una sección `main` de 1 compás.
 
 ---
 

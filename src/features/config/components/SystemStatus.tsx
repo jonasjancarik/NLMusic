@@ -3,12 +3,13 @@
 import { useSessionStore } from '@store/sessionStore';
 import { useTranslation } from '@lib/i18n';
 import { useStrudelContext } from '@features/audio';
+import { MAX_TRACKS_PER_SECTION } from '@lib/song';
 
 /**
  * Renderiza un snapshot de estado operativo para diagnostico rapido en vivo.
  * Expone readiness del motor, BPM actual y ocupacion de pistas sin side effects.
  *
- * @see BR-006 Limite de 5 pistas visible para el usuario
+ * @see BR-006 Limite de pistas por seccion visible para el usuario
  * @see EC-010 Estado del motor refleja si la app puede reproducir audio
  */
 export function SystemStatus() {
@@ -41,10 +42,10 @@ export function SystemStatus() {
             className={[
               // BR-006: enfatiza visualmente cuando se alcanza el maximo permitido.
               'font-[JetBrains_Mono,monospace]',
-              tracks.length >= 5 ? 'text-[var(--amber)]' : 'text-[var(--text-dim)]',
+              tracks.length >= MAX_TRACKS_PER_SECTION ? 'text-[var(--amber)]' : 'text-[var(--text-dim)]',
             ].join(' ')}
           >
-            {tracks.length} / 5
+            {tracks.length} / {MAX_TRACKS_PER_SECTION}
           </span>
         </StatusRow>
       </div>

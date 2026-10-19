@@ -30,13 +30,13 @@ describe('TrackZone — TASK-03 counter visibility', () => {
   it('shows the track counter in empty state', () => {
     render(<TrackZone />)
 
-    expect(screen.getByText('Pistas: 0 / 5')).toBeInTheDocument()
+    expect(screen.getByText('Pistas: 0 / 8')).toBeInTheDocument()
     expect(screen.getByText('Describe tu patrón abajo para empezar')).toBeInTheDocument()
   })
 
   it('EC-004: shows the track counter in amber when the limit is reached', () => {
     useSessionStore.setState({
-      tracks: Array.from({ length: 5 }, (_, index) => ({
+      tracks: Array.from({ length: 8 }, (_, index) => ({
         id: `track-${index + 1}`,
         name: `Track ${index + 1}`,
         steps: Array(16).fill(0) as (0 | 1)[],
@@ -48,7 +48,7 @@ describe('TrackZone — TASK-03 counter visibility', () => {
 
     render(<TrackZone />)
 
-    const counter = screen.getByText('Pistas: 5 / 5')
+    const counter = screen.getByText('Pistas: 8 / 8')
     expect(counter).toBeInTheDocument()
     expect(counter).toHaveStyle({ color: 'var(--amber)' })
   })

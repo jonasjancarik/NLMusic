@@ -1,4 +1,5 @@
 import { STRUDEL_INJECTION } from "./strudelInjection";
+import { DRUM_VOICES, MAX_TRACKS_PER_SECTION } from "@lib/song";
 
 /**
  * Construye el prompt de sistema para el generador musical con soporte de operaciones delta.
@@ -7,7 +8,7 @@ import { STRUDEL_INJECTION } from "./strudelInjection";
  *
  * @see BR-002 El LLM debe devolver JSON válido con el schema de operaciones
  * @see BR-004 Las pistas se crean de forma secuencial
- * @see BR-006 Máximo 5 pistas en total tras aplicar el delta
+ * @see BR-006 Máximo MAX_TRACKS_PER_SECTION (8) pistas tras aplicar el delta
  */
 export function buildSystemPrompt(): string {
   return `You are NLMusic, a real-time drum pattern generator for Strudel.
@@ -49,9 +50,9 @@ Output strictly valid JSON and nothing else. Do not wrap JSON in markdown fences
 ${STRUDEL_INJECTION}
 
 ## Common rules (both modes)
-- Maximum 5 tracks total after applying the delta (BR-006) — never add if there are already 5
+- Maximum ${MAX_TRACKS_PER_SECTION} tracks total after applying the delta (BR-006) — never add if there are already ${MAX_TRACKS_PER_SECTION}
 - Always return exactly 16 steps (0 or 1) per track
-- Use sample names compatible with Strudel drums: bd (kick), sd (snare), hh (closed hi-hat), oh (open hi-hat), cp (clap), rim, tom
+- Use one of these drum voices as "sample": ${DRUM_VOICES.map((voice) => `${voice.id} (${voice.name.toLowerCase()})`).join(', ')}
 - Keep bpm in range 60..220
 - Focus on drum tracks: kick, snare/clap, hihat, perc
 
