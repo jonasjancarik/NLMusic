@@ -119,7 +119,6 @@ export class ClaudeAdapter implements LLMProvider {
     const response = await this.client.messages.create({
       model: this.model,
       max_tokens: 1400,
-      temperature: 0.3,
       system: buildSystemPrompt(),
       messages: [{ role: "user", content: buildUserPrompt(prompt, context) }],
     });
