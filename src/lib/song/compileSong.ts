@@ -26,7 +26,18 @@ import { findSection } from './song';
  * @see CAP-NLM-015
  * @see BR-001 Reemplazar el código no corta el audio; el reloj de Strudel conserva la fase
  */
-export function compileSong(song: Song): string {
+export interface CompileSongOptions {
+  /**
+   * Envuelve el cuerpo (en compases, antes del `.slow(4)`) para añadirle capas que no son
+   * pistas de la canción, como el metrónomo o la cuenta atrás (TASK-30). Solo para reproducir:
+   * lo que se exporta (MIDI) nunca pasa por aquí.
+   */
+  wrap?: (body: string) => string;
+  /** Desplaza la posición de reproducción (compases) para mantener la fase al cambiar de tempo o de bucle. */
+  phaseBars?: number;
+}
+
+export function compileSong(song: Song, options: CompileSongOptions = {}): string {
   const soloIds = new Set(
     song.sections.flatMap((section) => section.tracks.filter((track) => track.solo).map((track) => track.id)),
   );
@@ -54,5 +65,7 @@ export function compileSong(song: Song): string {
     body = `arrange(\n${entries.join(',\n')}\n)`;
   }
 
-  return `${body}.slow(4).cpm(${song.bpm.toFixed(2)})`;
+  const wrapped = options.wrap ? options.wrap(body) : body;
+  const phase = options.phaseBars ? `.early(${options.phaseBars.toFixed(6)})` : '';
+  return `${wrapped}${phase}.slow(4).cpm(${song.bpm.toFixed(2)})`;
 }

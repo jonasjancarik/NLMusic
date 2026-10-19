@@ -5,7 +5,10 @@ import { Play, Square } from 'lucide-react';
 import { useSessionStore } from '@store/sessionStore';
 import { useTranslation } from '@lib/i18n';
 import { useStrudelContext } from '@features/audio';
-import { cyclesToBars, msUntilNextBar, schedulerCps } from '@lib/song';
+import { msUntilNextBar, schedulerCps } from '@lib/song';
+import { barsAt, type Timeline } from '@lib/practice';
+import { selectPlayCode, selectTimeline } from '@store/practiceSelectors';
+import { useTempoTrainer } from '@features/practice';
 
 interface PlayControlsProps {
   disabled?: boolean;
@@ -28,7 +31,14 @@ export function PlayControls({ disabled = false, disabledReason }: PlayControlsP
   const { play, stop, isReady, getHapState } = useStrudelContext();
   const isPlaying = useSessionStore((s) => s.isPlaying);
   const setPlaying = useSessionStore((s) => s.setPlaying);
-  const currentCode = useSessionStore((s) => s.currentCode);
+  // TASK-30: lo que suena es el código de la canción más, si se piden, bucle de sección,
+  // partes quitadas, clics y tempo del entrenador. Sin práctica activa es `currentCode`.
+  const currentCode = useSessionStore(selectPlayCode);
+  const beginPractice = useSessionStore((s) => s.beginPractice);
+  const endPractice = useSessionStore((s) => s.endPractice);
+  useTempoTrainer();
+  // Línea de tiempo (BPM y fase) del código que está sonando, para calcular el siguiente compás.
+  const appliedTimeline = useRef<Timeline>({ bpm: 0, phaseBars: 0 });
   const [stopFlash, setStopFlash] = useState(false);
   const syncedCode = useRef('');
   const prevIsPlayingRef = useRef(isPlaying);
@@ -38,10 +48,11 @@ export function PlayControls({ disabled = false, disabledReason }: PlayControlsP
   useEffect(() => {
     if (prevIsPlayingRef.current && !isPlaying) {
       stop();
+      endPractice();
       syncedCode.current = '';
     }
     prevIsPlayingRef.current = isPlaying;
-  }, [isPlaying, stop]);
+  }, [isPlaying, stop, endPractice]);
 
   useEffect(() => {
     if (!isPlaying || !isReady || !currentCode || syncedCode.current === currentCode) {
@@ -49,6 +60,7 @@ export function PlayControls({ disabled = false, disabledReason }: PlayControlsP
     }
 
     const apply = () => {
+      appliedTimeline.current = selectTimeline(useSessionStore.getState());
       syncedCode.current = currentCode;
       void play(currentCode);
     };
@@ -58,8 +70,8 @@ export function PlayControls({ disabled = false, disabledReason }: PlayControlsP
     let wait = 0;
     if (syncedCode.current) {
       try {
-        const { bpm } = useSessionStore.getState();
-        wait = msUntilNextBar(cyclesToBars(getHapState?.().getTime() ?? 0, bpm, schedulerCps()), bpm);
+        const timeline = appliedTimeline.current;
+        wait = msUntilNextBar(barsAt(timeline, getHapState?.().getTime() ?? 0, schedulerCps()), timeline.bpm);
       } catch {
         wait = 0;
       }
@@ -89,10 +101,16 @@ export function PlayControls({ disabled = false, disabledReason }: PlayControlsP
     }
 
     try {
-      syncedCode.current = currentCode;
-      await play(currentCode);
+      // TASK-30: cada reproducción nueva empieza el entrenador y fija la cuenta atrás.
+      beginPractice();
+      const state = useSessionStore.getState();
+      const code = selectPlayCode(state);
+      appliedTimeline.current = selectTimeline(state);
+      syncedCode.current = code;
+      await play(code);
       setPlaying(true);
     } catch {
+      endPractice();
       syncedCode.current = '';
     }
   };

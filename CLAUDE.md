@@ -177,3 +177,9 @@ con dependencias y criterios de revisión está en `.claude/tasks/TASK-INDEX.md`
 - `src/lib/song/notation.ts` — notación compacta de pasos ↔ `steps`/`velocity`
 - `scripts/eval-songs.ts` + `evals/README.md` — set de evaluación; los resultados (`evals/<fecha>/`) están en `.gitignore`
 - Modelo de datos: `SessionContext` añade `song` y `activeSectionId`; el tracks slice añade `loadGeneratedSong`; la API responde `{ song, activeSectionId, strudelCode }` en lugar de `trackJson`
+
+**Nuevos directorios/archivos (TASK-30, práctica):**
+- `src/lib/practice/` — lógica pura: entrenador de tempo, bucle de sección, partes quitadas, clics (cuenta atrás/metrónomo), `buildPlayCode` y línea de tiempo (`Timeline`). Los clics solo existen en el código que suena, nunca en `Song` ni en el MIDI.
+- `src/store/slices/practiceSlice.ts` + `src/store/practiceSelectors.ts` — preferencias persistidas (cuenta atrás, metrónomo, entrenador) y estado efímero (bucle, partes quitadas, BPM/fase de la sesión); `selectPlayCode` es lo que `PlayControls` manda a Strudel.
+- `src/features/practice/` — `PracticePanel`, `LoopSectionButton`, hooks `useLoopSection` / `useTempoTrainer`.
+- `compileSong(song, { wrap, phaseBars })` acepta opciones solo para reproducción.

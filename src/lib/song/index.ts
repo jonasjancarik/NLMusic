@@ -4,6 +4,7 @@ export * from './constants';
 export * from './drumVoices';
 export { patternToSong, findSection, replaceSectionTracks, totalBars, reconcileVelocity } from './song';
 export { compileSong } from './compileSong';
+export type { CompileSongOptions } from './compileSong';
 export { validateSong, songSchema } from './validation';
 export type { SongValidationError, SongValidationResult } from './validation';
 export * from './editing';

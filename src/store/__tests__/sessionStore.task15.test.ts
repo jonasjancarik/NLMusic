@@ -97,14 +97,22 @@ describe('TASK-15 - sessionStore slices regression', () => {
     // TASK-24: bpm/tracks now live inside `song`
     expect(Object.keys(persisted).sort()).toEqual([
       'activeSectionId',
+      'countInBars', // TASK-30: preferencias de práctica
       'delayTimeMode',
       'editorMode',
       'hapVisualizationEnabled',
       'highlightingEnabled',
       'language',
+      'metronomeMode',
+      'metronomeVolume',
       'song',
+      'tempoTrainer',
       'turns',
     ])
+    // TASK-30: el bucle, las partes quitadas y la sesión de práctica no se guardan
+    expect(persisted.loopSectionId).toBeUndefined()
+    expect(persisted.droppedParts).toBeUndefined()
+    expect(persisted.practiceBpm).toBeUndefined()
 
     expect(persisted.song.bpm).toBe(140)
     expect(persisted.song.sections[0].tracks).toHaveLength(3)

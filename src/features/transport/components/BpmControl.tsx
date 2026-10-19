@@ -21,6 +21,8 @@ interface BpmControlProps {
 export function BpmControl({ disabled = false, disabledReason }: BpmControlProps) {
   const t = useTranslation();
   const bpm = useSessionStore((s) => s.bpm);
+  // TASK-30: mientras el entrenador de tempo manda, se muestra el BPM que suena.
+  const shownBpm = useSessionStore((s) => s.practiceBpm ?? s.bpm);
   const setBpm = useSessionStore((s) => s.setBpm);
 
   return (
@@ -36,7 +38,7 @@ export function BpmControl({ disabled = false, disabledReason }: BpmControlProps
       >
         <Minus size={14} strokeWidth={2} className="text-current" />
       </button>
-      <span className="min-w-12 text-center text-[22px] font-bold leading-none text-[var(--text)]">{bpm}</span>
+      <span className="min-w-12 text-center text-[22px] font-bold leading-none text-[var(--text)]">{shownBpm}</span>
       <button
         type="button"
         title={disabledReason}

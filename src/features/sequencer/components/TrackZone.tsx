@@ -6,6 +6,7 @@ import { MAX_TRACKS_PER_SECTION } from '@lib/song';
 import { TrackCard } from './TrackCard';
 import { SectionTabs } from './SectionTabs';
 import { ArrangementStrip } from './ArrangementStrip';
+import { PracticePanel } from '@features/practice';
 import { usePlayhead } from '../hooks/usePlayhead';
 
 /**
@@ -30,6 +31,7 @@ export function TrackZone() {
     <>
       <SectionTabs playingSectionId={playhead?.sectionId ?? null} />
       <ArrangementStrip playhead={playhead} />
+      <PracticePanel />
     </>
   );
   const atLimit = tracks.length >= MAX_TRACKS_PER_SECTION;
