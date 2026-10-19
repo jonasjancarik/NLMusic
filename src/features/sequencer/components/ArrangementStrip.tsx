@@ -3,6 +3,7 @@
 import { useSessionStore } from '@store/sessionStore';
 import { useTranslation } from '@lib/i18n';
 import { MAX_REPEAT, MIN_REPEAT, totalBars, type PlayheadPosition } from '@lib/song';
+import { practiceLoopBars } from '@lib/practice';
 
 interface ArrangementStripProps {
   playhead: PlayheadPosition | null;
@@ -31,14 +32,18 @@ export function ArrangementStrip({ playhead }: ArrangementStripProps) {
   const setArrangementRepeat = useSessionStore((s) => s.setArrangementRepeat);
   const setArrangementSection = useSessionStore((s) => s.setArrangementSection);
 
-  const total = totalBars({ bpm, stepsPerBar, sections, arrangement });
+  const loopSectionId = useSessionStore((s) => s.loopSectionId);
+  const song = { bpm, stepsPerBar, sections, arrangement };
+  const total = totalBars(song);
+  // TASK-30: con un bucle de sección el contador de compás cuenta dentro del bucle.
+  const cycleBars = practiceLoopBars(song, loopSectionId);
 
   return (
     <div className="px-5 pb-3" data-testid="arrangement-strip">
       <div className="mb-1.5 flex items-center justify-between">
         <span className="text-[10px] uppercase tracking-[0.1em] text-[var(--text-muted)]">{t('song.arrangement')}</span>
         <span className="text-[10px] uppercase tracking-[0.1em] text-[var(--text-muted)]" data-testid="arrangement-total">
-          {playhead ? `${t('song.barLabel')} ${playhead.barInSong + 1} / ${total} · ` : ''}
+          {playhead ? `${t('song.barLabel')} ${playhead.barInSong + 1} / ${cycleBars} · ` : ''}
           {t('song.total')}: {total} {t('song.barsUnit')}
         </span>
       </div>

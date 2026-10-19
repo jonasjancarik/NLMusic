@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useSessionStore } from '@store/sessionStore';
 import { useTranslation } from '@lib/i18n';
 import { MAX_BARS, MIN_BARS } from '@lib/song';
+import { LoopSectionButton } from '@features/practice';
 
 interface SectionTabsProps {
   /** Sección que está sonando ahora, para marcarla en su pestaña. */
@@ -123,6 +124,8 @@ export function SectionTabs({ playingSectionId = null }: SectionTabsProps) {
         >
           {t('song.delete')}
         </button>
+
+        <LoopSectionButton />
 
         <div className="ml-auto flex items-center gap-1.5">
           <span className="text-[10px] uppercase tracking-[0.1em] text-[var(--text-muted)]">{t('song.bars')}</span>
