@@ -12,6 +12,7 @@ import {
   retimeAt,
   barsAt,
   sectionStartBar,
+  arrangementItemStartBar,
   trainerBpmForLoop,
   trainerBpmSequence,
   normalizeTempoTrainer,
@@ -80,6 +81,13 @@ describe('section loop (TASK-30 AC-1 / AC-7)', () => {
   it('finds where a section first starts in the arrangement', () => {
     expect(sectionStartBar(song, 'verse')).toBe(0);
     expect(sectionStartBar(song, 'chorus')).toBe(song.sections[0].bars * song.arrangement[0].repeat);
+  });
+
+  it('finds where each arrangement block starts, counting repeats', () => {
+    const bars = song.arrangement.map((item) => song.sections.find((s) => s.id === item.sectionId)!.bars * item.repeat);
+    expect(arrangementItemStartBar(song, 0)).toBe(0);
+    expect(arrangementItemStartBar(song, 1)).toBe(bars[0]);
+    expect(arrangementItemStartBar(song, song.arrangement.length)).toBe(bars.reduce((a, b) => a + b, 0));
   });
 });
 

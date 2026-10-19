@@ -6,6 +6,7 @@ import { selectSong } from '@store/helpers';
 import { effectiveBpm, selectTimeline } from '@store/practiceSelectors';
 import { schedulerCps } from '@lib/song';
 import {
+  arrangementItemStartBar,
   barsAt,
   nextBarBoundary,
   nextTrainerBpm,
@@ -58,6 +59,48 @@ export function useLoopSection(): (sectionId: string | null) => void {
       state.retimePractice({ bpm: trainerBpm, phaseBars: next.phaseBars, loopSectionId: sectionId });
     },
     [getHapState],
+  );
+}
+
+/**
+ * Reproduce la canción desde el bloque `index` del arreglo. Sonando, salta en el siguiente
+ * compás sin parar el reloj de Strudel (BR-001) y sale del bucle de sección si lo hay.
+ * Parado, arranca directamente en ese bloque (sin cuenta atrás, que es para empezar desde
+ * el principio). En modo código no hay canción que recorrer y no hace nada.
+ */
+export function usePlayFromBlock(): (index: number) => void {
+  const { getHapState, isReady } = useStrudelContext();
+
+  return useCallback(
+    (index) => {
+      const state = useSessionStore.getState();
+      if (!isReady || state.isCodeManuallyEdited || !state.currentCode) return;
+      const startBar = arrangementItemStartBar(selectSong(state), index);
+      const trainerBpm = state.tempoTrainer.enabled ? state.tempoTrainer.startBpm : null;
+
+      if (!state.isPlaying) {
+        state.beginPractice();
+        const countIn = useSessionStore.getState().practiceCountInBars;
+        // La cuenta atrás ocupa los primeros compases de la línea de tiempo: se salta.
+        state.retimePractice({ bpm: trainerBpm, phaseBars: countIn + startBar, loopSectionId: null });
+        state.setPlaying(true);
+        return;
+      }
+
+      const timeline = selectTimeline(state);
+      let cycles = 0;
+      try {
+        cycles = getHapState().getTime();
+      } catch {
+        cycles = 0;
+      }
+      const cps = schedulerCps();
+      const boundary = nextBarBoundary(timeline, cycles, cps);
+      const target = state.practiceCountInBars + startBar;
+      const next = retimeAt(trainerBpm ?? state.bpm, boundary.cycles, cps, Math.max(target, 0));
+      state.retimePractice({ bpm: trainerBpm, phaseBars: next.phaseBars, loopSectionId: null });
+    },
+    [getHapState, isReady],
   );
 }
 

@@ -1,3 +1,3 @@
 export { PracticePanel } from './components/PracticePanel';
 export { LoopSectionButton } from './components/LoopSectionButton';
-export { useLoopSection, useTempoTrainer } from './hooks/usePracticeControls';
+export { useLoopSection, usePlayFromBlock, useTempoTrainer } from './hooks/usePracticeControls';

@@ -62,6 +62,16 @@ export function practiceLoopBars(song: Song, loopSectionId?: string | null): num
 }
 
 /** Compás (0-based) del arreglo en el que empieza por primera vez una sección, o 0 si no aparece. */
+/** Compás (desde 0) en el que empieza el bloque `index` del arreglo. */
+export function arrangementItemStartBar(song: Song, index: number): number {
+  let start = 0;
+  for (const item of song.arrangement.slice(0, Math.max(0, index))) {
+    const section = findSection(song, item.sectionId);
+    if (section) start += section.bars * item.repeat;
+  }
+  return start;
+}
+
 export function sectionStartBar(song: Song, sectionId: string): number {
   let start = 0;
   for (const item of song.arrangement) {
