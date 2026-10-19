@@ -844,3 +844,51 @@ describe('sessionStore — Zustand store with business logic', () => {
     })
   })
 })
+
+describe('TASK-20: updateTrackParams (store)', () => {
+  const track: Track = {
+    id: 'kick-1',
+    name: 'Kick',
+    tag: 'kick',
+    steps: Array(16).fill(0) as (0 | 1)[],
+    volume: 0.8,
+    muted: false,
+    solo: false,
+  }
+
+  beforeEach(() => {
+    localStorage.clear()
+    useSessionStore.setState({ tracks: [track], bpm: 138, isCodeManuallyEdited: true, currentCode: 'old' })
+  })
+
+  it('AC-13: añade params a un track sin params previos', () => {
+    useSessionStore.getState().updateTrackParams('kick-1', { room: 0.6 })
+    expect(useSessionStore.getState().tracks[0].params).toEqual({ room: 0.6 })
+  })
+
+  it('AC-12: hace merge — no machaca params existentes', () => {
+    useSessionStore.setState({ tracks: [{ ...track, params: { room: 0.6, delay: 0.3 } }] })
+    useSessionStore.getState().updateTrackParams('kick-1', { room: 0 })
+    expect(useSessionStore.getState().tracks[0].params).toEqual({ room: 0, delay: 0.3 })
+  })
+
+  it('AC-11: recompila currentCode y deja isCodeManuallyEdited en false', () => {
+    useSessionStore.getState().updateTrackParams('kick-1', { room: 0.6 })
+    const state = useSessionStore.getState()
+    expect(state.currentCode).toContain('.room(0.6)')
+    expect(state.isCodeManuallyEdited).toBe(false)
+  })
+
+  it('no-op si el id no existe', () => {
+    const before = useSessionStore.getState()
+    useSessionStore.getState().updateTrackParams('nope', { room: 0.6 })
+    expect(useSessionStore.getState().tracks).toBe(before.tracks)
+    expect(useSessionStore.getState().currentCode).toBe('old')
+  })
+
+  it('AC-14: params persiste en localStorage', () => {
+    useSessionStore.getState().updateTrackParams('kick-1', { pan: 0.2 })
+    const persisted = JSON.parse(localStorage.getItem('nlmusic-session') ?? '{}')
+    expect(persisted.state.tracks[0].params).toEqual({ pan: 0.2 })
+  })
+})

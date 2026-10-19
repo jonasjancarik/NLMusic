@@ -1,5 +1,5 @@
 import type { StateCreator } from "zustand";
-import type { Track, TrackJSON } from "@lib/types";
+import type { Track, TrackJSON, TrackParams } from "@lib/types";
 import { deriveUiState, compileCode } from "../helpers";
 import type { SessionStore } from "../sessionStore";
 
@@ -27,6 +27,7 @@ export type TracksSlice = {
   toggleSolo: (trackId: string) => void;
   addTrack: (track: Track) => void;
   updateTrack: (id: string, patch: Partial<Track>) => boolean;
+  updateTrackParams: (id: string, patch: Partial<TrackParams>) => void;
   deleteTrack: (id: string) => void;
   loadPattern: (pattern: TrackJSON) => void;
   syncCodePattern: (pattern: TrackJSON, code: string) => void;
@@ -164,6 +165,24 @@ export const createTracksSlice: StateCreator<
     }));
     return true;
   },
+
+  // TASK-20: merge de params; no-op si la pista no existe. No toca el transporte (BR-001).
+  /**
+   * Fusiona un patch parcial sobre los params de la pista y recompila el código.
+   * @see BR-001
+   */
+  updateTrackParams: (id, patch) =>
+    set((state) => {
+      if (!state.tracks.some((t) => t.id === id)) return state;
+      const tracks = state.tracks.map((t) =>
+        t.id === id ? { ...t, params: { ...t.params, ...patch } } : t,
+      );
+      return {
+        tracks,
+        currentCode: compileCode(state.bpm, tracks),
+        isCodeManuallyEdited: false,
+      };
+    }),
 
   // EC-007/EC-008: al quedar 0 pistas, el transporte debe caer a IDLE.
   /**

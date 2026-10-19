@@ -4,3 +4,4 @@ export { Sequencer } from './components/Sequencer';
 export { StepButton } from './components/StepButton';
 export { MiniWaveform } from './components/MiniWaveform';
 export { VolumeSlider } from './components/VolumeSlider';
+export { useUpdateTrackParams } from './hooks/useUpdateTrackParams';
