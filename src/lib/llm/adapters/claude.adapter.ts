@@ -119,7 +119,6 @@ export class ClaudeAdapter implements LLMProvider {
     const response = await this.client.messages.create({
       model: this.model,
       max_tokens: 1400,
-      temperature: 0.3,
       // Prompt caching: the system prompt is static, so mark it cacheable.
       // Minimum cacheable prefix is 1024 tokens on claude-sonnet-4-6 (the default model);
       // the current prompt is shorter, so it silently won't cache yet. Kept so caching

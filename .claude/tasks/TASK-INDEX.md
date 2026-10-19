@@ -71,3 +71,23 @@ Ejecutar `npm test` + `npm run build` al finalizar cada task antes de continuar.
 - [ ] **TASK-22** — UI: acordeón de parámetros por pista _(depende de TASK-19)_
 - [ ] **TASK-23** — UI: controles avanzados (filtro, efectos, panorama) _(depende de TASK-22)_
 
+---
+
+## Sprint 4 — Baterías y canciones (planificado)
+
+Objetivo: crear canciones de batería completas (secciones, arreglo, dinámica), exportarlas a un DAW y generarlas desde Claude sin llamadas a la API. El LLM inventa los patrones; no hay biblioteca obligatoria de grooves.
+
+- [ ] **TASK-24** — Modelo de canción por secciones + reproducción con `arrange` _(bloqueante; independiente de TASK-19..23 salvo coordinar `audio.ts`)_
+- [ ] **TASK-25** — UI: secciones, arreglo y velocidad por paso _(depende de TASK-24)_
+- [ ] **TASK-26** — Exportación MIDI _(depende de TASK-24)_
+- [ ] **TASK-27** — LLM: generación de canciones, guía de batería y set de evaluación _(depende de TASK-24; coordinar con TASK-21)_
+- [ ] **TASK-28** — CLI y servidor MCP sin llamadas a la API _(depende de TASK-24, 26, 27)_
+- [ ] **TASK-29** — Envío en vivo de canciones a la app abierta _(depende de TASK-25, 28)_
+- [ ] **TASK-30** — Herramientas de práctica (bucle, cuenta atrás, entrenador de tempo) _(depende de TASK-25)_
+
+**Orden recomendado:** TASK-24 → TASK-26 → TASK-27 → TASK-28 → TASK-25 → TASK-29 → TASK-30
+
+Primero modelo, MIDI y LLM/MCP (se puede probar el bucle con archivos y `.mid` sin tocar la UI); después la UI y el envío en vivo.
+
+**Ideas futuras (sin task):** MIDI en vivo con Web MIDI hacia el DAW, sincronización de reloj, exportación de audio por stems, compases distintos de 4/4.
+
