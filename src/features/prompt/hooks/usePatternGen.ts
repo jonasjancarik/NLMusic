@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useSessionStore } from '@store/sessionStore';
 import type { TrackJSON } from '@lib/types';
 
@@ -24,22 +24,20 @@ function retryFromStore(
  * @see BR-010 Prompt vacío no genera llamada al LLM
  */
 export function usePatternGen() {
-  const [isLoading, setIsLoading] = useState(false);
   const [info, setInfo] = useState<string | null>(null);
+  // Evita envíos concurrentes aunque el store salga de LOADING por una edición del grid.
+  const inFlightRef = useRef(false);
 
-  const turns = useSessionStore((s) => s.turns);
-  const bpm = useSessionStore((s) => s.bpm);
-  const tracks = useSessionStore((s) => s.tracks);
-  const currentCode = useSessionStore((s) => s.currentCode);
+  // Solo lo que se renderiza se suscribe; el resto se lee con getState() al generar.
   const lastError = useSessionStore((s) => s.lastError);
+  const uiState = useSessionStore((s) => s.uiState);
+  const isLoading = uiState === 'loading';
   const loadPattern = useSessionStore((s) => s.loadPattern);
   const addTurn = useSessionStore((s) => s.addTurn);
   const startLoading = useSessionStore((s) => s.startLoading);
   const storeRetry = useSessionStore((s) => s.retry);
   const storeSetError = useSessionStore((s) => s.setError);
   const setLastPrompt = useSessionStore((s) => s.setLastPrompt);
-
-  const isCodeManuallyEdited = useSessionStore((s) => s.isCodeManuallyEdited);
 
   const generate = useCallback(async (prompt: string): Promise<boolean> => {
     // BR-010: prompt vacío no llama al LLM
@@ -48,7 +46,12 @@ export function usePatternGen() {
       return false;
     }
 
-    setIsLoading(true);
+    if (inFlightRef.current) return false;
+    inFlightRef.current = true;
+
+    const { turns, bpm, tracks, currentCode, isCodeManuallyEdited } =
+      useSessionStore.getState();
+
     startLoading();
     setInfo(null);
     setLastPrompt(prompt);
@@ -112,9 +115,9 @@ export function usePatternGen() {
       storeSetError(message);
       return false;
     } finally {
-      setIsLoading(false);
+      inFlightRef.current = false;
     }
-  }, [addTurn, bpm, currentCode, isCodeManuallyEdited, loadPattern, setLastPrompt, startLoading, storeSetError, tracks, turns]);
+  }, [addTurn, loadPattern, setLastPrompt, startLoading, storeSetError]);
 
   // BR-003: reintento — reutiliza lastPrompt del store sin que el usuario reescriba
   const retry = useCallback(() => {

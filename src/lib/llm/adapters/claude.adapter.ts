@@ -120,7 +120,17 @@ export class ClaudeAdapter implements LLMProvider {
       model: this.model,
       max_tokens: 1400,
       temperature: 0.3,
-      system: buildSystemPrompt(),
+      // Prompt caching: the system prompt is static, so mark it cacheable.
+      // Minimum cacheable prefix is 1024 tokens on claude-sonnet-4-6 (the default model);
+      // the current prompt is shorter, so it silently won't cache yet. Kept so caching
+      // starts working as soon as the prompt grows past the threshold.
+      system: [
+        {
+          type: "text" as const,
+          text: buildSystemPrompt(),
+          cache_control: { type: "ephemeral" as const },
+        },
+      ],
       messages: [{ role: "user", content: buildUserPrompt(prompt, context) }],
     });
 
