@@ -7,6 +7,7 @@ import { useStrudelContext } from '@features/audio';
 import { PlayControls } from './PlayControls';
 import { BpmControl } from './BpmControl';
 import { BarIndicator } from './BarIndicator';
+import { DownloadMidiButton } from './DownloadMidiButton';
 
 /**
  * Barra de transporte fija en la parte superior.
@@ -69,6 +70,7 @@ export function TransportBar() {
         </div>
 
         <BarIndicator />
+        <DownloadMidiButton />
 
         {/* TASK-13: language selector — discrete, right-aligned */}
         <div

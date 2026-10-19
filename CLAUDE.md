@@ -130,6 +130,7 @@ Si la task introdujo cambios estructurales (nuevas dependencias, nuevos director
 - Compilador con `buildParamsChain` (ADSR → filtro lp/hp con `lpq`/`hpq` → room → delay → pan; osciladores vía `note().s().struct()`), acción `updateTrackParams` en el tracks slice y hook `useUpdateTrackParams` sobre StrudelContext (TASK-20)
 - System prompt LLM con referencia de `params` y semántica de merge (TASK-21)
 - Modelo de canción por secciones (TASK-24): `Song`/`Section`/`ArrangementItem` y `Track.velocity`; `validateSong` con errores que nombran sección y pista; `compileSong` con `arrange`; voces de batería con su sample real; persistencia v1 (`song` + `activeSectionId`) con migración desde v0; BR-006 pasa a 8 pistas por sección. La UI y el LLM siguen trabajando sobre la sección activa (`main` por defecto); `tracks` del store es un espejo de esa sección
+- Exportación MIDI (TASK-26): `songToMidi(song): Uint8Array` en `src/lib/midi/` (SMF formato 1, canal 10, 480 PPQ, markers por bloque del arreglo, mute/solo respetados); mapa GM en `DRUM_VOICES.midi`; botón `DownloadMidiButton` en TransportBar. Sin dependencias nuevas: escritor SMF propio (~100 líneas) y lector propio en los tests
 
 **Pendiente Sprint 2 (orden de ejecución):**
 - TASK-11 — Hap highlighting en tiempo real (flash de tokens al sonar) sobre el editor CodeMirror

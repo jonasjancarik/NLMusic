@@ -104,6 +104,11 @@ const translations = {
     'track.soloLabel': 'Solo pista',
     'bpm.incrementLabel': 'Aumentar BPM',
     'bpm.decrementLabel': 'Disminuir BPM',
+
+    // TASK-26: exportación MIDI
+    'midi.download': 'Descargar MIDI',
+    'midi.downloadTitle': 'Descarga la canción como archivo .mid para abrirla en tu DAW. Las pistas silenciadas no se incluyen y, si hay alguna en solo, solo se incluyen las pistas en solo.',
+    'midi.downloadEmpty': 'Genera algún ritmo antes de descargar.',
   },
 
   en: {
@@ -187,6 +192,11 @@ const translations = {
     'track.soloLabel': 'Solo track',
     'bpm.incrementLabel': 'Increase BPM',
     'bpm.decrementLabel': 'Decrease BPM',
+
+    // TASK-26: MIDI export
+    'midi.download': 'Download MIDI',
+    'midi.downloadTitle': 'Download the song as a .mid file to open in your DAW. Muted tracks are left out, and if any track is soloed, only the soloed tracks are included.',
+    'midi.downloadEmpty': 'Create a beat before downloading.',
   },
 } as const
 

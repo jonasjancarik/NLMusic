@@ -22,6 +22,7 @@ const defaultStoreState = {
   currentCode: 's("bd").gain(0.85).slow(4).cpm(138.00)',
   bpm: 138,
   setBpm: vi.fn(),
+  sections: [] as { tracks: unknown[] }[], // TASK-26: DownloadMidiButton
   // TASK-13: useTranslation reads language from the store; PlayControls and TransportBar both
   // call useTranslation(), so the mock must include language/setLanguage or the selector crashes.
   language: 'es' as 'es' | 'en',
