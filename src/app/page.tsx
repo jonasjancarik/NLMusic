@@ -9,6 +9,12 @@ import { useSessionStore } from '@store/sessionStore';
 import { useTranslation } from '@lib/i18n';
 import { StrudelProvider, useStrudelContext } from '@features/audio';
 
+const TABS = [
+  { id: 'sequencer' as const, labelKey: 'tabs.sequencer' as const },
+  { id: 'code' as const, labelKey: 'tabs.strudel' as const },
+  { id: 'config' as const, labelKey: 'tabs.config' as const },
+];
+
 /**
  * Ensambla la shell principal consumiendo Strudel via Context en lugar de props.
  * Si falla la inicializacion, mantiene visible un banner persistente y bloquea acciones dependientes del motor.
@@ -62,42 +68,21 @@ function HomeContent() {
       >
         <div className="flex h-[42px] items-end gap-1 border-b border-[var(--border)] bg-[var(--surface)] px-5">
           {/* TASK-12: tercera pestaña de configuracion/guia comparte el mismo router de tabs del store. */}
-          <button
-            type="button"
-            onClick={() => setActiveTab('sequencer')}
-            className={[
-              'rounded-t-[8px] border border-b-0 px-4 py-2 text-[11px] uppercase tracking-[0.12em] transition-all',
-              activeTab === 'sequencer'
-                ? 'border-[var(--border-active)] bg-[rgba(0,255,200,0.08)] text-[var(--cyan)]'
-                : 'border-transparent bg-transparent text-[var(--text-dim)] hover:text-[var(--text)]',
-            ].join(' ')}
-          >
-            {t('tabs.sequencer')}
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('code')}
-            className={[
-              'rounded-t-[8px] border border-b-0 px-4 py-2 text-[11px] uppercase tracking-[0.12em] transition-all',
-              activeTab === 'code'
-                ? 'border-[var(--border-active)] bg-[rgba(0,255,200,0.08)] text-[var(--cyan)]'
-                : 'border-transparent bg-transparent text-[var(--text-dim)] hover:text-[var(--text)]',
-            ].join(' ')}
-          >
-            {t('tabs.strudel')}
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('config')}
-            className={[
-              'rounded-t-[8px] border border-b-0 px-4 py-2 text-[11px] uppercase tracking-[0.12em] transition-all',
-              activeTab === 'config'
-                ? 'border-[var(--border-active)] bg-[rgba(0,255,200,0.08)] text-[var(--cyan)]'
-                : 'border-transparent bg-transparent text-[var(--text-dim)] hover:text-[var(--text)]',
-            ].join(' ')}
-          >
-            {t('tabs.config')}
-          </button>
+          {TABS.map(({ id, labelKey }) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setActiveTab(id)}
+              className={[
+                'rounded-t-[8px] border border-b-0 px-4 py-2 text-[11px] uppercase tracking-[0.12em] transition-all',
+                activeTab === id
+                  ? 'border-[var(--border-active)] bg-[rgba(0,255,200,0.08)] text-[var(--cyan)]'
+                  : 'border-transparent bg-transparent text-[var(--text-dim)] hover:text-[var(--text)]',
+              ].join(' ')}
+            >
+              {t(labelKey)}
+            </button>
+          ))}
         </div>
 
         <section className="min-h-0 flex-1 overflow-hidden">

@@ -1,5 +1,3 @@
-'use client';
-
 import { useCallback, useState } from 'react';
 import { useSessionStore } from '@store/sessionStore';
 import type { TrackJSON } from '@lib/types';

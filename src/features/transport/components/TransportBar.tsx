@@ -35,32 +35,13 @@ export function TransportBar() {
 
   return (
     <header
-      className="border-b border-[var(--border)] bg-[var(--surface)]"
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        zIndex: 60,
-      }}
+      className="fixed left-0 right-0 top-0 z-[60] border-b border-[var(--border)] bg-[var(--surface)]"
     >
       <div
-        className="relative"
-        style={{
-          maxWidth: 1100,
-          width: '100%',
-          minHeight: 58,
-          margin: '0 auto',
-          padding: '0 20px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 24,
-        }}
+        className="relative mx-auto flex min-h-[58px] w-full max-w-[1100px] items-center justify-center gap-6 px-5"
       >
         <div
-          className="flex items-center gap-3"
-          style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)' }}
+          className="absolute left-4 top-1/2 flex -translate-y-1/2 items-center gap-3"
         >
           <span className="text-[11px] uppercase tracking-[0.18em] text-[var(--text-muted)]">
             NLMusic
@@ -91,8 +72,7 @@ export function TransportBar() {
 
         {/* TASK-13: language selector — discrete, right-aligned */}
         <div
-          className="flex items-center gap-1"
-          style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)' }}
+          className="absolute right-4 top-1/2 flex -translate-y-1/2 items-center gap-1"
         >
           {(['es', 'en'] as Language[]).map((lang) => (
             <button

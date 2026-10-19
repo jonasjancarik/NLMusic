@@ -22,8 +22,7 @@ describe('TransportBar — language selector integration (TASK-13)', () => {
       const source = readFileSync(transportBarPath, 'utf-8')
 
       // Verify positioning
-      expect(source).toContain('right: 16')
-      expect(source).toContain('position: \'absolute\'')
+      expect(source).toContain('absolute right-4')
     })
 
     it('TransportBar applies different styling for active/inactive language buttons', () => {
@@ -96,8 +95,7 @@ describe('TransportBar — language selector integration (TASK-13)', () => {
 
     it('implements right-aligned positioning', () => {
       const source = readFileSync(transportBarPath, 'utf-8')
-      expect(source).toContain('right: 16')
-      expect(source).toContain('position: \'absolute\'')
+      expect(source).toContain('absolute right-4')
     })
   })
 })

@@ -15,6 +15,13 @@ type HighlightApi = {
   highlightMiniLocations: (view: EditorView, atTime: number, haps: unknown[]) => void;
 };
 
+type HapLike = {
+  hasOnset: () => boolean;
+  value?: Record<string, unknown>;
+  context?: { locations?: unknown[] };
+  whole?: unknown;
+};
+
 interface UseHapEventsProps {
   /** Whether the transport is currently playing; controls the RAF loop lifecycle. */
   isPlaying: boolean;
@@ -256,10 +263,3 @@ export function useHapEvents({ isPlaying, fallbackStep, getView, getHapState }: 
     // fallbackStep is read via fallbackStepRef so the loop is not restarted on each transport step.
   }, [isPlaying, getView, getHapState]);
 }
-
-type HapLike = {
-  hasOnset: () => boolean;
-  value?: Record<string, unknown>;
-  context?: { locations?: unknown[] };
-  whole?: unknown;
-};

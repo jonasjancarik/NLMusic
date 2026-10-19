@@ -11,6 +11,7 @@ import {
   useStrudelContext,
 } from '@features/audio';
 import type { StrudelEditorRef } from './StrudelEditor';
+import { Oscilloscope } from './Oscilloscope';
 
 // CodeMirror touches document/window at init — must be client-only
 const StrudelEditor = dynamic(
@@ -69,7 +70,6 @@ export function StrudelCodePanel() {
     getHapState: strudel.getHapState,
   });
 
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [localCode, setLocalCode] = useState(currentCode);
@@ -132,40 +132,6 @@ export function StrudelCodePanel() {
     }, 600);
   }
 
-  /**
-   * Osciloscopio decorativo desacoplado del highlighting y del transporte.
-   * Vive en un RAF propio para no mezclar concerns visuales con la edición del código.
-   */
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const context = canvas.getContext('2d');
-    if (!context) return;
-
-    let rafId = 0;
-    let frame = 0;
-    const draw = () => {
-      frame += 1;
-      const width = canvas.clientWidth;
-      const height = canvas.height;
-      if (canvas.width !== width) canvas.width = width;
-      context.clearRect(0, 0, width, height);
-      context.strokeStyle = 'rgba(0,255,200,0.5)';
-      context.lineWidth = 1.5;
-      context.beginPath();
-      for (let x = 0; x < width; x += 1) {
-        const angle = (x + frame * 2) * 0.03;
-        const y = height / 2 + Math.sin(angle) * 10;
-        if (x === 0) context.moveTo(x, y);
-        else context.lineTo(x, y);
-      }
-      context.stroke();
-      rafId = requestAnimationFrame(draw);
-    };
-    draw();
-    return () => cancelAnimationFrame(rafId);
-  }, []);
-
   useEffect(() => {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -215,7 +181,7 @@ export function StrudelCodePanel() {
       </div>
 
       <div className="scope-wrap rounded-[8px] border border-[var(--border)] bg-[var(--surface)] p-2">
-        <canvas ref={canvasRef} className="scope-canvas w-full" height={50} />
+        <Oscilloscope />
       </div>
     </div>
   );
