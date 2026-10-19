@@ -18,7 +18,7 @@ interface Hap {
 let strudel: StrudelModule
 
 beforeAll(async () => {
-  strudel = (await import('../../../../node_modules/@strudel/web/dist/index.mjs')) as unknown as StrudelModule
+  strudel = (await import('@strudel/web/dist/index.mjs')) as unknown as StrudelModule
   strudel.setStringParser(strudel.mini)
 })
 

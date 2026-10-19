@@ -82,11 +82,15 @@ describe('MCP server over stdio', () => {
   });
 });
 
+// Child env with only PATH plus the given vars (not the whole parent env).
+const minimalEnv = (extra: Record<string, string>): NodeJS.ProcessEnv =>
+  Object.assign({} as NodeJS.ProcessEnv, { PATH: process.env.PATH ?? '' }, extra);
+
 describe('CLI in plain Node', () => {
   const run = (args: string[], songsDir: string) =>
     spawnSync(TSX, ['src/mcp/song.ts', ...args], {
       cwd: REPO,
-      env: { PATH: process.env.PATH ?? '', NLMUSIC_SONGS_DIR: songsDir },
+      env: minimalEnv({ NLMUSIC_SONGS_DIR: songsDir }),
       encoding: 'utf8',
     });
 
@@ -116,7 +120,7 @@ describe('CLI in plain Node', () => {
   it('does not read ANTHROPIC_API_KEY (works with it unset and set)', () => {
     const out = execFileSync(TSX, ['src/mcp/song.ts', 'list'], {
       cwd: REPO,
-      env: { PATH: process.env.PATH ?? '', NLMUSIC_SONGS_DIR: path.join(tmp, 'none'), ANTHROPIC_API_KEY: 'sk-test' },
+      env: minimalEnv({ NLMUSIC_SONGS_DIR: path.join(tmp, 'none'), ANTHROPIC_API_KEY: 'sk-test' }),
       encoding: 'utf8',
     });
     expect(out).not.toContain('sk-test');

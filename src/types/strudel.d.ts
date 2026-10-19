@@ -59,3 +59,9 @@ declare module '@strudel/codemirror' {
   export function flash(view: import('@codemirror/view').EditorView, ms?: number): void;
 }
 
+
+// Direct dist entry, imported by tests to bypass the global `@strudel/web` mock.
+declare module '@strudel/web/dist/index.mjs' {
+  const strudel: Record<string, unknown>;
+  export = strudel;
+}
