@@ -42,7 +42,7 @@ describe('MCP server over stdio', () => {
   it('lists the tools', async () => {
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name).sort()).toEqual(
-      ['export_midi', 'export_strudel', 'get_song_guide', 'list_songs', 'load_song', 'save_song', 'validate_song'],
+      ['export_midi', 'export_strudel', 'get_song_guide', 'list_songs', 'load_song', 'play_in_app', 'save_song', 'validate_song'],
     );
   });
 

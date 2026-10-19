@@ -12,6 +12,7 @@ import { createAudioSlice, type AudioSlice } from "./slices/audioSlice";
 import { createUiSlice, type UiSlice } from "./slices/uiSlice";
 import { createSessionSlice, type SessionSlice } from "./slices/sessionSlice";
 import { createEditorSlice, type EditorSlice } from "./slices/editorSlice";
+import { createLiveSlice, type LiveSlice } from "./slices/liveSlice";
 
 // Re-export types that consumers import from this module
 export type { UiState, EditorMode } from "./helpers";
@@ -20,7 +21,7 @@ export type { UiState, EditorMode } from "./helpers";
  * Estado unificado de sesión construido por composición de slices.
  * Mantiene estable la API pública para consumidores de useSessionStore.
  */
-export type SessionStore = TracksSlice & AudioSlice & UiSlice & SessionSlice & EditorSlice;
+export type SessionStore = TracksSlice & AudioSlice & UiSlice & SessionSlice & EditorSlice & LiveSlice;
 
 export const useSessionStore = create<SessionStore>()(
   devtools(
@@ -31,6 +32,7 @@ export const useSessionStore = create<SessionStore>()(
         ...createUiSlice(...args),
         ...createSessionSlice(...args),
         ...createEditorSlice(...args),
+        ...createLiveSlice(...args),
       }),
       {
         name: "nlmusic-session",
@@ -48,6 +50,8 @@ export const useSessionStore = create<SessionStore>()(
           hapVisualizationEnabled: state.hapVisualizationEnabled,
           language: state.language,
           delayTimeMode: state.delayTimeMode,
+          // TASK-29
+          autoAcceptSentSongs: state.autoAcceptSentSongs,
         }),
       },
     ),

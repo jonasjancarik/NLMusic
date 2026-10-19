@@ -97,6 +97,7 @@ describe('TASK-15 - sessionStore slices regression', () => {
     // TASK-24: bpm/tracks now live inside `song`
     expect(Object.keys(persisted).sort()).toEqual([
       'activeSectionId',
+      'autoAcceptSentSongs',
       'delayTimeMode',
       'editorMode',
       'hapVisualizationEnabled',

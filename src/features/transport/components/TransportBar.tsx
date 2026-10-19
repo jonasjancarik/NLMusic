@@ -4,6 +4,7 @@ import { useSessionStore } from '@store/sessionStore';
 import type { Language } from '@lib/i18n';
 import { useTranslation } from '@lib/i18n';
 import { useStrudelContext } from '@features/audio';
+import { LiveConnectionIndicator } from '@features/live';
 import { PlayControls } from './PlayControls';
 import { BpmControl } from './BpmControl';
 import { BarIndicator } from './BarIndicator';
@@ -58,6 +59,8 @@ export function TransportBar() {
           />
           {/* Engine status indicator */}
           {engineIndicator}
+          {/* TASK-29 */}
+          <LiveConnectionIndicator />
         </div>
 
         <div

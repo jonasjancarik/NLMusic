@@ -8,6 +8,7 @@ import { PromptBox } from '@features/prompt';
 import { useSessionStore } from '@store/sessionStore';
 import { useTranslation } from '@lib/i18n';
 import { StrudelProvider, useStrudelContext } from '@features/audio';
+import { LiveSongInbox } from '@features/live';
 
 const TABS = [
   { id: 'sequencer' as const, labelKey: 'tabs.sequencer' as const },
@@ -93,6 +94,8 @@ function HomeContent() {
       </div>
 
       <PromptBox motorAvailable={!strudel.initError} />
+      {/* TASK-29: canciones enviadas desde Claude (MCP) */}
+      <LiveSongInbox />
     </main>
   );
 }

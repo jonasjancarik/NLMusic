@@ -26,6 +26,8 @@ export interface PersistedState {
   hapVisualizationEnabled: boolean;
   language: Language;
   delayTimeMode: SessionStore["delayTimeMode"];
+  /** TASK-29; opcional porque los estados guardados antes no lo tienen. */
+  autoAcceptSentSongs?: boolean;
 }
 
 /** Forma persistida antes de TASK-24 (versión 0). */

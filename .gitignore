@@ -13,3 +13,6 @@ next-env.d.ts
 
 # Resultados de npm run eval:songs (se conservan en local; añade con git add -f los que quieras comparar)
 evals/*/
+
+# TASK-29: token local que comparten el servidor y el MCP para /api/songs/push
+.nlmusic/

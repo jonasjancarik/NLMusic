@@ -16,6 +16,8 @@ export function EditorPreferences() {
   const setEditorMode = useSessionStore((s) => s.setEditorMode);
   const setHighlightingEnabled = useSessionStore((s) => s.setHighlightingEnabled);
   const setHapVisualizationEnabled = useSessionStore((s) => s.setHapVisualizationEnabled);
+  const autoAcceptSentSongs = useSessionStore((s) => s.autoAcceptSentSongs);
+  const setAutoAcceptSentSongs = useSessionStore((s) => s.setAutoAcceptSentSongs);
 
   return (
     <section>
@@ -46,6 +48,14 @@ export function EditorPreferences() {
             <Toggle value={hapVisualizationEnabled} onChange={setHapVisualizationEnabled} />
           </PrefRow>
         )}
+
+        {/* TASK-29: canciones enviadas desde Claude (MCP) */}
+        <div>
+          <PrefRow label={t('live.autoAccept')}>
+            <Toggle value={autoAcceptSentSongs} onChange={setAutoAcceptSentSongs} />
+          </PrefRow>
+          <p className="mt-1 text-[10px] text-[var(--text-muted)]">{t('live.autoAcceptHint')}</p>
+        </div>
       </div>
 
       {/* Espacio reservado para formulario de API key en v1+ */}

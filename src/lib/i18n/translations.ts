@@ -138,6 +138,25 @@ const translations = {
     'step.normal': 'normal',
     'step.accent': 'fuerte',
     'step.velocityHint': 'Flecha arriba o abajo, o Mayús+clic, para cambiar la fuerza',
+
+    // TASK-29 — Canciones enviadas desde Claude (MCP)
+    'live.connected': 'Claude conectado',
+    'live.connecting': 'Conectando con Claude…',
+    'live.offline': 'Claude sin conexión',
+    'live.connectedHint': 'Las canciones que Claude te envíe aparecerán aquí.',
+    'live.offlineHint': 'No se pueden recibir canciones de Claude ahora. Se vuelve a intentar solo.',
+    'live.received': 'Claude te ha enviado una canción',
+    'live.summaryBpm': 'BPM',
+    'live.summarySections': 'secciones',
+    'live.willStart': 'Empezará a sonar al cargarla.',
+    'live.nextBar': 'Entrará en el siguiente compás, sin cortar lo que suena.',
+    'live.load': 'Cargar',
+    'live.dismiss': 'Descartar',
+    'live.editsWarning': 'Has editado el código a mano y esos cambios no están en el grid. Si cargas la canción, se perderán.',
+    'live.replace': 'Reemplazar mi código',
+    'live.keep': 'Mantener mi código',
+    'live.autoAccept': 'Aceptar canciones enviadas por Claude automáticamente',
+    'live.autoAcceptHint': 'Si has editado el código a mano, se te preguntará igualmente.',
   },
 
   en: {
@@ -255,6 +274,25 @@ const translations = {
     'step.normal': 'normal',
     'step.accent': 'loud',
     'step.velocityHint': 'Arrow up or down, or Shift+click, to change how hard it hits',
+
+    // TASK-29 — Songs sent from Claude (MCP)
+    'live.connected': 'Claude connected',
+    'live.connecting': 'Connecting to Claude…',
+    'live.offline': 'Claude not connected',
+    'live.connectedHint': 'Songs that Claude sends you will show up here.',
+    'live.offlineHint': 'Songs from Claude can’t be received right now. Retrying automatically.',
+    'live.received': 'Claude sent you a song',
+    'live.summaryBpm': 'BPM',
+    'live.summarySections': 'sections',
+    'live.willStart': 'It will start playing when you load it.',
+    'live.nextBar': 'It comes in on the next bar, without cutting what’s playing.',
+    'live.load': 'Load',
+    'live.dismiss': 'Dismiss',
+    'live.editsWarning': 'You edited the code by hand and those changes aren’t in the grid. Loading the song will discard them.',
+    'live.replace': 'Replace my code',
+    'live.keep': 'Keep my code',
+    'live.autoAccept': 'Accept songs sent by Claude automatically',
+    'live.autoAcceptHint': 'If you edited the code by hand, you’ll still be asked first.',
   },
 } as const
 

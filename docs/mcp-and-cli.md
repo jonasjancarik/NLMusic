@@ -38,6 +38,7 @@ Las canciones se guardan en `songs/` relativo al directorio de trabajo del proce
 | `load_song(name)` | Lee `songs/<name>.json`. |
 | `export_midi(name \| song, outPath?)` | Escribe `songs/<name>.mid` (o `outPath`, relativo a `songs/`, acabado en `.mid`) y devuelve la ruta. |
 | `export_strudel(name \| song)` | Devuelve el código Strudel; no escribe nada. |
+| `play_in_app(name \| song, autoplay?)` | Envía la canción a la pestaña de NLMusic abierta (TASK-29). Ver «Escuchar en la app». |
 
 `song` es un objeto JSON (o su texto) con `bpm`, `stepsPerBar`, `sections` y `arrangement`; las pistas usan la notación compacta (`"x...X.g.|..."`) o arrays 0/1. También se acepta la respuesta `replaceSong` de la app.
 
@@ -69,6 +70,33 @@ Los archivos de entrada se leen tal cual los das (es tu terminal); los de salida
 - `save_song` abre el archivo con `wx`: nunca pisa una canción existente por accidente.
 - Tests: `src/mcp/__tests__/songFiles.test.ts` y `songTools.test.ts` (ataques de ruta), contra directorios temporales.
 
+## Escuchar en la app: `play_in_app` (TASK-29)
+
+Strudel solo suena en el navegador, así que el MCP no reproduce: manda la canción al servidor de la app y este la entrega a las pestañas abiertas.
+
+1. Arranca la app desde la misma carpeta que el MCP: `npm run dev` (o `npx next dev -H 0.0.0.0` para abrirla también desde el móvil o Tailscale) y ábrela en el navegador. Junto al logo aparece «Claude conectado».
+2. Pide a Claude que escriba la canción y llame a `play_in_app { song }` (o `{ name }` para una guardada).
+3. La pestaña muestra «Claude te ha enviado una canción» con **Cargar** / **Descartar**. Si ya suena algo, la canción entra en el siguiente compás sin cortar el audio (BR-001). Si está parado, no arranca sola salvo `autoplay: true`.
+4. En Configuración, «Aceptar canciones enviadas por Claude automáticamente» (desactivado por defecto) se salta el aviso. Si has editado el código a mano y esas ediciones no están en el grid, la app pregunta igualmente antes de reemplazarlas.
+
+La canción cargada queda en el store como cualquier otra: el grid es editable (BR-008) y el código se recompila (BR-009).
+
+Respuesta de la herramienta: `{ ok, tabs, delivered, message }`. Con `tabs: 0` no hay ninguna pestaña abierta: la canción espera en la app 30 minutos y se ofrece a la primera pestaña que se conecte. Si la app no está arrancada, el error lo dice y recuerda que la canción guardada sigue en `songs/`.
+
+Variables: `NLMUSIC_APP_URL` (por defecto `http://127.0.0.1:3000`) y `NLMUSIC_PUSH_TOKEN_FILE` (por defecto `.nlmusic/push-token` en la carpeta de trabajo).
+
+**Dos pestañas abiertas:** en v1 la canción llega a todas y cada una muestra su aviso. `tabs` dice cuántas la recibieron.
+
+### Seguridad de `/api/songs/push` y `/api/songs/stream`
+
+El servidor de desarrollo suele escuchar en `0.0.0.0` (LAN, Tailscale), así que «solo localhost» no puede depender de lo que diga la petición:
+
+- **Por qué no la IP.** En Next 16 los route handlers no tienen acceso al socket. La única pista es `x-forwarded-for`, que Next rellena con la IP real *solo si el cliente no la manda* (`??=`), así que cualquiera en la red la falsifica con `curl -H 'X-Forwarded-For: 127.0.0.1'`. `Host` y `Origin` tampoco sirven.
+- **Barrera real: token en un archivo local.** La app y el MCP comparten un token aleatorio de 256 bits en `.nlmusic/push-token` (carpeta 0700, archivo 0600, ignorado por git). Lo crea el primero que lo necesita (`wx`, sin carreras). La ruta exige `Authorization: Bearer <token>` y lo compara en tiempo constante. Para leerlo hace falta acceso a la carpeta del proyecto como el mismo usuario. Un equipo de la red o una página web no lo tienen. Se rechaza un archivo que sea un enlace simbólico, de otro usuario o legible por otros.
+- **Capas adicionales.** Se rechaza cualquier petición con `Origin` o `Sec-Fetch-Site`, porque las mandan los navegadores, nunca el MCP. También se rechaza un `x-forwarded-for` que no sea loopback: así una petición honesta desde la LAN se corta aunque tenga el token. El body tiene un tope de 256 KB, contado también sin `Content-Length`. Solo se acepta `application/json` con `{ song, name?, autoplay? }` estricto, y la canción pasa por la misma validación que el MCP y el LLM (`src/lib/llm/parseSongInput.ts`).
+- **El stream no pide token, a propósito.** Solo lleva canciones ya validadas que alguien con el token envió, lo mismo que la app enseña a quien la abre. Así una pestaña abierta desde el móvil también las recibe. No se mandan cabeceras CORS, así que otra web abierta en tu navegador no puede leerlo. Hay un tope de 16 clientes simultáneos, y el navegador vuelve a validar cada canción antes de usarla.
+- Tests: `src/lib/live/__tests__/pushRequest.test.ts` (sin token, token falso, cabeceras de localhost falsificadas, LAN, peticiones de navegador, permisos del archivo, tamaño, validación).
+
 ## Código compartido (AC-1)
 
 `src/mcp/` solo añade el acceso a archivos y el envoltorio de protocolo. La validación (`validateSong`, `interpretSongResponse`), `compileSong`, `songToMidi` y la guía (`DRUM_GUIDE`) son los mismos módulos de `src/lib/` que usa la app. `src/mcp/__tests__/purity.test.ts` recorre el grafo de imports de ambas entradas y falla si aparece React, Next, Zustand, Strudel, `window`, el store o el SDK de Anthropic; `smoke.test.ts` arranca el servidor y la CLI en Node puro (sin jsdom).
@@ -76,4 +104,3 @@ Los archivos de entrada se leen tal cual los das (es tu terminal); los de salida
 ## Límites conocidos
 
 - Los errores de forma (p. ej. una voz inexistente) se devuelven antes que los de longitud o referencias del arreglo: son dos fases del código compartido de TASK-27. Basta con validar de nuevo tras corregir.
-- La reproducción en la app (`play_in_app`) llega con TASK-29.

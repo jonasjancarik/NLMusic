@@ -114,7 +114,7 @@ A stdio MCP server lets Claude Code (or any MCP client) write drum songs with yo
 }
 ```
 
-Then ask: *"Write a 4-bar funk groove at 100 bpm, validate it, save it as funk-100 and export MIDI."* Tools: `get_song_guide`, `validate_song`, `save_song`, `list_songs`, `load_song`, `export_midi`, `export_strudel`. The same operations are available as `npm run song -- validate|save|list|midi|strudel`. Details: [docs/mcp-and-cli.md](docs/mcp-and-cli.md).
+Then ask: *"Write a 4-bar funk groove at 100 bpm, validate it, save it as funk-100 and export MIDI."* Tools: `get_song_guide`, `validate_song`, `save_song`, `list_songs`, `load_song`, `export_midi`, `export_strudel`, and `play_in_app`, which sends the song to the NLMusic tab open in your browser so you can listen and ask for changes (start the app from the same folder; with `npx next dev -H 0.0.0.0` other devices can open it, and only local tools holding the `.nlmusic/push-token` file can send songs). The same operations are available as `npm run song -- validate|save|list|midi|strudel`. Details: [docs/mcp-and-cli.md](docs/mcp-and-cli.md).
 
 ---
 

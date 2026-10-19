@@ -134,6 +134,8 @@ Si la task introdujo cambios estructurales (nuevas dependencias, nuevos director
 
 - LLM de canciones de batería (TASK-27): el LLM devuelve un delta de canción (`replaceSong`, `addSection`, `updateSection`, `removeSection`, `setArrangement` y las operaciones de pista con `sectionId` opcional) con pasos en notación compacta (`X.x.g...|`); guía de batería como string importable; hasta 2 reintentos automáticos con los errores concretos y luego ERROR (422); prompt de sistema cacheable; `npm run eval:songs` fuera de `npm test`
 
+- Envío en vivo de canciones desde el MCP a la pestaña abierta: `POST /api/songs/push` (token en `.nlmusic/push-token`), `GET /api/songs/stream` (SSE), aviso Cargar/Descartar, ajuste de aceptación automática, herramienta MCP `play_in_app` (TASK-29)
+
 **Pendiente Sprint 2 (orden de ejecución):**
 - TASK-11 — Hap highlighting en tiempo real (flash de tokens al sonar) sobre el editor CodeMirror
 
@@ -147,6 +149,15 @@ Si la task introdujo cambios estructurales (nuevas dependencias, nuevos director
 **Nuevos directorios/archivos (TASK-12):**
 - `src/features/config/` — tercera pestaña Configuración/Guía (estado, guía de prompts, atajos, preferencias)
 - `src/features/code-view/components/__tests__/StrudelCodePanel.task12.test.tsx` — cobertura del toggle editor avanzado/simple
+
+**Nuevos directorios/archivos (TASK-29):**
+- `src/lib/live/` — token compartido, cola en memoria (singleton en `globalThis`), lógica de push y SSE
+- `src/app/api/songs/push` y `src/app/api/songs/stream` — rutas finas sobre `src/lib/live`
+- `src/features/live/` — hook `useLiveSongs`, aviso `LiveSongPrompt`, `LiveConnectionIndicator`
+- `src/store/slices/liveSlice.ts` — sexto slice (`liveConnection`, `pendingLiveSong`, `autoAcceptSentSongs` persistido)
+- `src/lib/llm/parseSongInput.ts` — validación de canción compartida por MCP, CLI y `/api/songs/push`
+- `src/mcp/playInApp.ts` — herramienta `play_in_app`
+- `.nlmusic/` (gitignored) — token local de push
 
 **Nuevos directorios/archivos (TASK-13):**
 - `src/lib/i18n/translations.ts` — diccionario ES/EN tipado con `TranslationKey` union

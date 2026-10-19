@@ -3,7 +3,7 @@ import path from 'node:path';
 import type { Song } from '../lib/types';
 import { compileSong, totalBars } from '../lib/song';
 import { songToMidi } from '../lib/midi';
-import { interpretSongResponse } from '../lib/llm/songPipeline';
+import { parseSongInput, type Failure, type SongInput } from '../lib/llm/parseSongInput';
 import { buildSongGuide } from './songGuide';
 import { resolveInsideSongsDir, sanitizeSongName } from './songFiles';
 
@@ -16,33 +16,16 @@ import { resolveInsideSongsDir, sanitizeSongName } from './songFiles';
 
 export interface ToolContext {
   songsDir: string;
+  /** TASK-29: dirección de la app (por defecto http://127.0.0.1:3000; `NLMUSIC_APP_URL`). */
+  appUrl?: string;
+  /** TASK-29: token compartido con la app (por defecto `.nlmusic/push-token`). */
+  pushTokenFile?: string;
 }
 
-export type Failure = { ok: false; errors: string[] };
+export type { Failure, ParsedSong, SongInput } from '../lib/llm/parseSongInput';
+export { parseSongInput };
+
 const fail = (...errors: string[]): Failure => ({ ok: false, errors });
-
-/** Entrada de canción: objeto, o texto JSON (el cliente puede mandar cualquiera de los dos). */
-export type SongInput = unknown;
-
-export type ParsedSong = { ok: true; song: Song; warnings: string[] } | Failure;
-
-/** Normaliza y valida una canción con el mismo código que usa la app (delta replaceSong + validateSong). */
-export function parseSongInput(input: SongInput): ParsedSong {
-  let raw = input;
-  if (typeof raw === 'string') {
-    try {
-      raw = JSON.parse(raw);
-    } catch (error) {
-      return fail(`The song is not valid JSON: ${error instanceof Error ? error.message : String(error)}`);
-    }
-  }
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
-    return fail('The song must be a JSON object with bpm, stepsPerBar, sections and arrangement.');
-  }
-  const result = interpretSongResponse({ text: JSON.stringify(raw) }, { turns: [] });
-  if (!result.ok) return fail(...result.errors);
-  return { ok: true, song: result.song, warnings: result.warnings };
-}
 
 export function getSongGuide(): { guide: string } {
   return { guide: buildSongGuide() };
@@ -148,7 +131,7 @@ export function listSongs(ctx: ToolContext): { ok: true; songs: SongListing[] } 
 }
 
 /** Resuelve `name` (canción guardada) o `song` (inline). */
-function songFromArgs(ctx: ToolContext, args: { name?: string; song?: SongInput }): { ok: true; song: Song; name?: string } | Failure {
+export function songFromArgs(ctx: ToolContext, args: { name?: string; song?: SongInput }): { ok: true; song: Song; name?: string } | Failure {
   if (args.name !== undefined && args.song !== undefined) return fail('Pass either "name" or "song", not both.');
   if (args.name !== undefined) {
     const loaded = loadSong(ctx, args.name);

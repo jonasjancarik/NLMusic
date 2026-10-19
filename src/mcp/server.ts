@@ -10,6 +10,7 @@ import {
   validateSongTool,
   type ToolContext,
 } from './songTools';
+import { playInApp } from './playInApp';
 
 /**
  * Servidor MCP de NLMusic (TASK-28). Envoltorio fino: cada herramienta llama a las funciones
@@ -93,6 +94,16 @@ export function createMcpServer(ctx: ToolContext): McpServer {
       inputSchema: { name: nameArg.optional(), song: songArg.optional() },
     },
     async (args) => reply(exportStrudel(ctx, args)),
+  );
+
+  server.registerTool(
+    'play_in_app',
+    {
+      description:
+        'Send a song to the NLMusic app open in the browser so the user can hear it (Strudel only plays there). Pass a saved song "name" or an inline "song". The tab shows a prompt to load it; if music is already playing it comes in on the next bar. autoplay: true also starts playback when it is stopped. Returns how many tabs received it; with 0 the song waits in the app until a tab opens.',
+      inputSchema: { name: nameArg.optional(), song: songArg.optional(), autoplay: z.boolean().optional() },
+    },
+    async (args) => reply(await playInApp(ctx, args)),
   );
 
   return server;
