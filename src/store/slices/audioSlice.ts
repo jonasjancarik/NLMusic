@@ -1,6 +1,6 @@
 import type { StateCreator } from "zustand";
 import { deriveUiState } from "../helpers";
-import { initialBpm, initialTracks } from "./tracksSlice";
+import { initialSong } from "./tracksSlice";
 import { compileCode } from "../helpers";
 import type { SessionStore } from "../sessionStore";
 
@@ -25,7 +25,7 @@ export const createAudioSlice: StateCreator<
   AudioSlice
 > = (set) => ({
   isPlaying: false,
-  currentCode: compileCode(initialBpm, initialTracks),
+  currentCode: compileCode(initialSong),
   isCodeManuallyEdited: false,
 
   // BR-001: el transporte actualiza estado sin tocar el patrón activo.

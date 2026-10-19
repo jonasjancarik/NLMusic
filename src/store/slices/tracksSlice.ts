@@ -1,6 +1,13 @@
 import type { StateCreator } from "zustand";
-import type { Track, TrackJSON, TrackParams } from "@lib/types";
-import { deriveUiState, compileCode } from "../helpers";
+import type { ArrangementItem, Section, Song, StepsPerBar, Track, TrackJSON, TrackParams } from "@lib/types";
+import {
+  DEFAULT_SECTION_ID,
+  MAX_TRACKS_PER_SECTION,
+  findSection,
+  patternToSong,
+  reconcileVelocity,
+} from "@lib/song";
+import { deriveUiState, compileCode, selectSong } from "../helpers";
 import type { SessionStore } from "../sessionStore";
 
 export const defaultKickTrack: Track = {
@@ -15,10 +22,20 @@ export const defaultKickTrack: Track = {
 
 export const initialTracks: Track[] = [defaultKickTrack];
 export const initialBpm = 138;
+export const initialSong: Song = patternToSong({ bpm: initialBpm, tracks: initialTracks });
 
 export type TracksSlice = {
+  /** Espejo de las pistas de la sección activa; lo que editan el grid y el LLM. */
   tracks: Track[];
   bpm: number;
+  /** v1: fijo una vez creada la canción; solo cambia sustituyendo la canción con loadSong. */
+  stepsPerBar: StepsPerBar;
+  /** Fuente de verdad de la canción (CAP-NLM-015). */
+  sections: Section[];
+  arrangement: ArrangementItem[];
+  activeSectionId: string;
+  loadSong: (song: Song) => void;
+  setActiveSection: (sectionId: string) => void;
   setTracks: (tracks: Track[]) => void;
   setBpm: (bpm: number) => void;
   toggleStep: (trackId: string, stepIndex: number) => void;
@@ -34,6 +51,25 @@ export type TracksSlice = {
 };
 
 /**
+ * Escribe las pistas de la sección activa (y opcionalmente el BPM) en la canción y
+ * recompila. Todas las acciones que cambian pistas pasan por aquí para que `tracks`
+ * y `sections` no se desincronicen.
+ * @see BR-009
+ */
+function commitTracks(state: SessionStore, tracks: Track[], bpm: number = state.bpm) {
+  const sections = state.sections.map((section) =>
+    section.id === state.activeSectionId ? { ...section, tracks } : section,
+  );
+  return {
+    tracks,
+    bpm,
+    sections,
+    currentCode: compileCode(selectSong({ ...state, bpm, sections })),
+    isCodeManuallyEdited: false,
+  };
+}
+
+/**
  * Slice de pistas y BPM con acciones de edición y sincronización de código.
  * Incluye transiciones que afectan transporte/UI cuando cambian las pistas.
  */
@@ -45,6 +81,47 @@ export const createTracksSlice: StateCreator<
 > = (set, get) => ({
   tracks: initialTracks,
   bpm: initialBpm,
+  stepsPerBar: initialSong.stepsPerBar,
+  sections: initialSong.sections,
+  arrangement: initialSong.arrangement,
+  activeSectionId: DEFAULT_SECTION_ID,
+
+  // BR-001: sustituir la canción no toca el transporte; Strudel cambia de patrón
+  // sin cortar y conserva la fase del reloj.
+  /**
+   * Sustituye la canción completa (ya validada con validateSong).
+   * La sección activa pasa a ser la primera del arreglo.
+   * @see CAP-NLM-015
+   */
+  loadSong: (song) =>
+    set((state) => {
+      const active = findSection(song, song.arrangement[0]?.sectionId ?? "") ?? song.sections[0];
+      const tracks = active?.tracks ?? [];
+      const nextIsPlaying = tracks.length > 0 ? state.isPlaying : false;
+      return {
+        bpm: song.bpm,
+        stepsPerBar: song.stepsPerBar,
+        sections: song.sections,
+        arrangement: song.arrangement,
+        activeSectionId: active?.id ?? DEFAULT_SECTION_ID,
+        tracks,
+        currentCode: compileCode(song),
+        isCodeManuallyEdited: false,
+        isPlaying: nextIsPlaying,
+        uiState: deriveUiState(tracks, nextIsPlaying),
+      };
+    }),
+
+  /**
+   * Cambia la sección que muestran el grid y el LLM. No recompila: el código
+   * siempre es la canción entera. No-op si la sección no existe.
+   */
+  setActiveSection: (sectionId) =>
+    set((state) => {
+      const section = state.sections.find((s) => s.id === sectionId);
+      if (!section) return state;
+      return { activeSectionId: sectionId, tracks: section.tracks };
+    }),
 
   // EC-007: al eliminar la última pista forzamos IDLE y detenemos reproducción.
   /**
@@ -56,9 +133,7 @@ export const createTracksSlice: StateCreator<
     set((state) => {
       const nextIsPlaying = tracks.length > 0 ? state.isPlaying : false;
       return {
-        tracks,
-        currentCode: compileCode(state.bpm, tracks),
-        isCodeManuallyEdited: false,
+        ...commitTracks(state, tracks),
         isPlaying: nextIsPlaying,
         uiState: deriveUiState(tracks, nextIsPlaying),
       };
@@ -67,11 +142,7 @@ export const createTracksSlice: StateCreator<
   setBpm: (bpm) =>
     set((state) => {
       const clamped = Math.min(220, Math.max(60, bpm));
-      return {
-        bpm: clamped,
-        currentCode: compileCode(clamped, state.tracks),
-        isCodeManuallyEdited: false,
-      };
+      return commitTracks(state, state.tracks, clamped);
     }),
 
   toggleStep: (trackId, stepIndex) =>
@@ -82,13 +153,10 @@ export const createTracksSlice: StateCreator<
           if (index !== stepIndex) return value;
           return value === 1 ? 0 : 1;
         }) as (0 | 1)[];
-        return { ...track, steps };
+        const velocity = reconcileVelocity(steps, track.velocity);
+        return velocity ? { ...track, steps, velocity } : { ...track, steps };
       });
-      return {
-        tracks,
-        currentCode: compileCode(state.bpm, tracks),
-        isCodeManuallyEdited: false,
-      };
+      return commitTracks(state, tracks);
     }),
 
   setVolume: (trackId, volume) =>
@@ -98,11 +166,7 @@ export const createTracksSlice: StateCreator<
           ? { ...track, volume: Math.max(0, Math.min(1, volume)) }
           : track,
       );
-      return {
-        tracks,
-        currentCode: compileCode(state.bpm, tracks),
-        isCodeManuallyEdited: false,
-      };
+      return commitTracks(state, tracks);
     }),
 
   toggleMute: (trackId) =>
@@ -110,11 +174,7 @@ export const createTracksSlice: StateCreator<
       const tracks = state.tracks.map((track) =>
         track.id === trackId ? { ...track, muted: !track.muted } : track,
       );
-      return {
-        tracks,
-        currentCode: compileCode(state.bpm, tracks),
-        isCodeManuallyEdited: false,
-      };
+      return commitTracks(state, tracks);
     }),
 
   toggleSolo: (trackId) =>
@@ -130,22 +190,13 @@ export const createTracksSlice: StateCreator<
           ? { ...track, solo: true }
           : { ...track, solo: false };
       });
-      return {
-        tracks,
-        currentCode: compileCode(state.bpm, tracks),
-        isCodeManuallyEdited: false,
-      };
+      return commitTracks(state, tracks);
     }),
 
   addTrack: (track) =>
     set((state) => {
-      if (state.tracks.length >= 5) return state;
-      const nextTracks = [...state.tracks, track];
-      return {
-        tracks: nextTracks,
-        currentCode: compileCode(state.bpm, nextTracks),
-        isCodeManuallyEdited: false,
-      };
+      if (state.tracks.length >= MAX_TRACKS_PER_SECTION) return state; // BR-006
+      return commitTracks(state, [...state.tracks, track]);
     }),
 
   // BR-004: modifica pista por id; devuelve false si no existe (BR-005)
@@ -158,11 +209,7 @@ export const createTracksSlice: StateCreator<
     const { tracks } = get();
     if (!tracks.some((t) => t.id === id)) return false;
     const nextTracks = tracks.map((t) => (t.id === id ? { ...t, ...patch } : t));
-    set((state) => ({
-      tracks: nextTracks,
-      currentCode: compileCode(state.bpm, nextTracks),
-      isCodeManuallyEdited: false,
-    }));
+    set((state) => commitTracks(state, nextTracks));
     return true;
   },
 
@@ -177,11 +224,7 @@ export const createTracksSlice: StateCreator<
       const tracks = state.tracks.map((t) =>
         t.id === id ? { ...t, params: { ...t.params, ...patch } } : t,
       );
-      return {
-        tracks,
-        currentCode: compileCode(state.bpm, tracks),
-        isCodeManuallyEdited: false,
-      };
+      return commitTracks(state, tracks);
     }),
 
   // EC-007/EC-008: al quedar 0 pistas, el transporte debe caer a IDLE.
@@ -196,9 +239,7 @@ export const createTracksSlice: StateCreator<
       const nextTracks = state.tracks.filter((t) => t.id !== id);
       const nextIsPlaying = nextTracks.length > 0 ? state.isPlaying : false;
       return {
-        tracks: nextTracks,
-        currentCode: compileCode(state.bpm, nextTracks),
-        isCodeManuallyEdited: false,
+        ...commitTracks(state, nextTracks),
         isPlaying: nextIsPlaying,
         uiState: deriveUiState(nextTracks, nextIsPlaying),
       };
@@ -206,19 +247,23 @@ export const createTracksSlice: StateCreator<
 
   // FIX-6: reusar código ya compilado por usePatternGen para evitar doble compilación
   /**
-   * Carga un patrón completo desde LLM respetando límite defensivo de 5 pistas.
-   * Prioriza strudelCode precompilado para evitar recompilación redundante.
+   * Carga un patrón del LLM en la sección activa respetando el límite de pistas.
+   * Reutiliza strudelCode precompilado solo si la canción es esa única sección de
+   * 1 compás (si no, el código precompilado no incluiría el resto de la canción).
    * @see BR-006
    */
   loadPattern: (pattern) =>
-    set(() => {
-      const nextTracks = pattern.tracks.slice(0, 5); // BR-006 defensa
-      const code = pattern.strudelCode ?? compileCode(pattern.bpm, nextTracks);
+    set((state) => {
+      const nextTracks = pattern.tracks.slice(0, MAX_TRACKS_PER_SECTION); // BR-006 defensa
+      const committed = commitTracks(state, nextTracks, pattern.bpm);
+      const isSingleBar =
+        state.sections.length === 1 &&
+        state.arrangement.length === 1 &&
+        state.sections[0].bars === 1 &&
+        state.stepsPerBar === 16;
       return {
-        bpm: pattern.bpm,
-        tracks: nextTracks,
-        currentCode: code,
-        isCodeManuallyEdited: false,
+        ...committed,
+        currentCode: (isSingleBar && pattern.strudelCode) || committed.currentCode,
         isPlaying: nextTracks.length > 0,
         uiState: nextTracks.length > 0 ? "playing" : "idle",
         lastError: null,
@@ -233,13 +278,11 @@ export const createTracksSlice: StateCreator<
    */
   syncCodePattern: (pattern, code) =>
     set((state) => {
-      const nextTracks = pattern.tracks.slice(0, 5); // BR-006 cap defensivo
+      const nextTracks = pattern.tracks.slice(0, MAX_TRACKS_PER_SECTION); // BR-006 cap defensivo
       const nextIsPlaying = nextTracks.length > 0 ? state.isPlaying : false;
       return {
-        bpm: pattern.bpm,
-        tracks: nextTracks,
+        ...commitTracks(state, nextTracks, pattern.bpm),
         currentCode: code,
-        isCodeManuallyEdited: false,
         isPlaying: nextIsPlaying,
         uiState: deriveUiState(nextTracks, nextIsPlaying),
       };

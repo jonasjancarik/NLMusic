@@ -120,11 +120,11 @@ describe('sessionStore — Zustand store with business logic', () => {
     })
   })
 
-  describe('BR-006: maximum 5 tracks enforced at store level', () => {
-    it('should allow validation to be called by loadPattern with <= 5 tracks', () => {
+  describe('BR-006: maximum 8 tracks per section enforced at store level', () => {
+    it('should allow validation to be called by loadPattern with <= 8 tracks', () => {
       const pattern: TrackJSON = {
         bpm: 120,
-        tracks: Array(5)
+        tracks: Array(8)
           .fill(0)
           .map((_, i) => ({
             id: `track-${i}`,
@@ -140,13 +140,13 @@ describe('sessionStore — Zustand store with business logic', () => {
       // This test documents that the store accepts valid patterns
       useSessionStore.getState().loadPattern(pattern)
 
-      expect(useSessionStore.getState().tracks).toHaveLength(5)
+      expect(useSessionStore.getState().tracks).toHaveLength(8)
     })
 
-    it('EC-004: loadPattern slices defensively when pattern contains more than 5 tracks', () => {
+    it('EC-004: loadPattern slices defensively when pattern contains more than 8 tracks', () => {
       const pattern: TrackJSON = {
         bpm: 120,
-        tracks: Array.from({ length: 6 }, (_, index) => ({
+        tracks: Array.from({ length: 9 }, (_, index) => ({
           id: `track-${index + 1}`,
           name: `Track ${index + 1}`,
           steps: Array(16).fill(0) as (0 | 1)[],
@@ -158,18 +158,21 @@ describe('sessionStore — Zustand store with business logic', () => {
 
       useSessionStore.getState().loadPattern(pattern)
 
-      expect(useSessionStore.getState().tracks).toHaveLength(5)
+      expect(useSessionStore.getState().tracks).toHaveLength(8)
       expect(useSessionStore.getState().tracks.map((track) => track.id)).toEqual([
         'track-1',
         'track-2',
         'track-3',
         'track-4',
         'track-5',
+        'track-6',
+        'track-7',
+        'track-8',
       ])
     })
 
-    it('TASK-14: addTrack is a no-op when 5 tracks already exist', () => {
-      const existingTracks: Track[] = Array.from({ length: 5 }, (_, index) => ({
+    it('TASK-14: addTrack is a no-op when 8 tracks already exist', () => {
+      const existingTracks: Track[] = Array.from({ length: 8 }, (_, index) => ({
         id: `track-${index + 1}`,
         name: `Track ${index + 1}`,
         steps: Array(16).fill(0) as (0 | 1)[],
@@ -185,8 +188,8 @@ describe('sessionStore — Zustand store with business logic', () => {
 
       expect(() =>
         useSessionStore.getState().addTrack({
-          id: 'track-6',
-          name: 'Track 6',
+          id: 'track-9',
+          name: 'Track 9',
           steps: Array(16).fill(0) as (0 | 1)[],
           volume: 0.8,
           muted: false,
@@ -195,7 +198,7 @@ describe('sessionStore — Zustand store with business logic', () => {
       ).not.toThrow()
 
       const state = useSessionStore.getState()
-      expect(state.tracks).toHaveLength(5)
+      expect(state.tracks).toHaveLength(8)
       expect(state.tracks.map((track) => track.id)).toEqual(existingTracks.map((track) => track.id))
       expect(state.currentCode).toBe('existing-code')
     })
@@ -889,6 +892,7 @@ describe('TASK-20: updateTrackParams (store)', () => {
   it('AC-14: params persiste en localStorage', () => {
     useSessionStore.getState().updateTrackParams('kick-1', { pan: 0.2 })
     const persisted = JSON.parse(localStorage.getItem('nlmusic-session') ?? '{}')
-    expect(persisted.state.tracks[0].params).toEqual({ pan: 0.2 })
+    // TASK-24: persisted as a song; the default pattern lives in section "main"
+    expect(persisted.state.song.sections[0].tracks[0].params).toEqual({ pan: 0.2 })
   })
 })

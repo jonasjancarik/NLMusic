@@ -94,19 +94,20 @@ describe('TASK-15 - sessionStore slices regression', () => {
 
     const persisted = JSON.parse(raw as string).state
 
+    // TASK-24: bpm/tracks now live inside `song`
     expect(Object.keys(persisted).sort()).toEqual([
-      'bpm',
+      'activeSectionId',
       'delayTimeMode',
       'editorMode',
       'hapVisualizationEnabled',
       'highlightingEnabled',
       'language',
-      'tracks',
+      'song',
       'turns',
     ])
 
-    expect(persisted.bpm).toBe(140)
-    expect(persisted.tracks).toHaveLength(3)
+    expect(persisted.song.bpm).toBe(140)
+    expect(persisted.song.sections[0].tracks).toHaveLength(3)
     expect(persisted.language).toBe('en')
     expect(persisted.uiState).toBeUndefined()
     expect(persisted.lastError).toBeUndefined()
