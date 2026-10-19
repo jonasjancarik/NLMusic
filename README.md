@@ -94,7 +94,27 @@ npm run lint         # TypeScript & ESLint check
 npm run check        # Type check only
 npm run v0:cli       -- "prompt"  # Test v0 pipeline from CLI
 npm run v0:test                   # Run v0 test harness (20 prompts)
+npm run mcp                       # MCP server (stdio) to write songs from Claude Code, no API key
+npm run song -- list              # CLI: validate | save | list | midi | strudel (see below)
 ```
+
+### Use from Claude Code / MCP clients (no API calls)
+
+A stdio MCP server lets Claude Code (or any MCP client) write drum songs with your subscription: it validates, saves to `songs/` and exports MIDI/Strudel using the same code as the app. Add it to `.mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "nlmusic": {
+      "command": "npm",
+      "args": ["run", "--silent", "mcp"],
+      "cwd": "/absolute/path/to/NLMusic"
+    }
+  }
+}
+```
+
+Then ask: *"Write a 4-bar funk groove at 100 bpm, validate it, save it as funk-100 and export MIDI."* Tools: `get_song_guide`, `validate_song`, `save_song`, `list_songs`, `load_song`, `export_midi`, `export_strudel`. The same operations are available as `npm run song -- validate|save|list|midi|strudel`. Details: [docs/mcp-and-cli.md](docs/mcp-and-cli.md).
 
 ---
 

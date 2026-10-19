@@ -153,6 +153,11 @@ Si la task introdujo cambios estructurales (nuevas dependencias, nuevos director
 - `src/lib/i18n/useTranslation.ts` — hook reactivo que lee `language` del store
 - `src/lib/i18n/index.ts` — barrel export
 
+**Nuevos directorios/archivos (TASK-28):**
+- `src/mcp/` — servidor MCP stdio (`npm run mcp`, `index.ts` + `server.ts`) y CLI (`npm run song`, `song.ts` + `cli.ts`) como envoltorios finos sobre `songTools.ts`; `songFiles.ts` restringe rutas a `songs/` (sin `..`, rutas absolutas ni symlinks hacia fuera); `songGuide.ts` compone `get_song_guide`. Todo reutiliza `src/lib/` (validateSong, interpretSongResponse, compileSong, songToMidi, DRUM_GUIDE) y no importa React/Next/Zustand ni lee la clave de API (`purity.test.ts` lo comprueba)
+- Nueva dependencia: `@modelcontextprotocol/sdk@1.32.1` (comprobada 2026-10-19: release estable del 2026-10-05, ~39 M descargas/semana, MIT, Node ≥18, peer `zod ^3.25 || ^4`). Runner de TypeScript: `tsx`, como `v0:cli`/`eval:songs`
+- Documentación: `docs/mcp-and-cli.md`; `songs/` es el directorio de canciones guardadas (`NLMUSIC_SONGS_DIR` lo cambia)
+
  El índice maestro
 con dependencias y criterios de revisión está en `.claude/tasks/TASK-INDEX.md`.
 

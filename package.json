@@ -12,7 +12,9 @@
     "test": "vitest run --pool=threads",
     "test:watch": "vitest --pool=threads",
     "test:coverage": "vitest run --coverage --pool=threads",
-    "eval:songs": "tsx scripts/eval-songs.ts"
+    "eval:songs": "tsx scripts/eval-songs.ts",
+    "mcp": "tsx src/mcp/index.ts",
+    "song": "tsx src/mcp/song.ts"
   },
   "keywords": [],
   "author": "",
@@ -25,6 +27,7 @@
     "@codemirror/language": "^6.12.3",
     "@codemirror/state": "^6.6.0",
     "@codemirror/view": "^6.41.1",
+    "@modelcontextprotocol/sdk": "^1.32.1",
     "@strudel/codemirror": "^1.3.0",
     "@strudel/transpiler": "^1.2.6",
     "@strudel/web": "^1.3.0",
