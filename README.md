@@ -2,6 +2,8 @@
 
 Convert natural language descriptions into live drum patterns in the browser, powered by Claude and Strudel.
 
+![NLMusic sequencer with song structure, practice panel and step grid](docs/images/screenshot.png)
+
 **Status:** MVP (v0.1) — Core workflow complete, testing in progress.
 
 ---
