@@ -1,5 +1,5 @@
 import type { StateCreator } from "zustand";
-import { deriveUiState, type ActiveTab, type UiState } from "../helpers";
+import { deriveUiState, songTracks, type ActiveTab, type UiState } from "../helpers";
 import type { SessionStore } from "../sessionStore";
 
 export type DelayTimeMode = "free" | "musical";
@@ -67,7 +67,7 @@ export const createUiSlice: StateCreator<
    */
   clearError: () =>
     set((state) => ({
-      uiState: deriveUiState(state.tracks, state.isPlaying),
+      uiState: deriveUiState(songTracks(state.sections), state.isPlaying),
       lastError: null,
     })),
 

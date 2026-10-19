@@ -3,11 +3,25 @@ import type { ArrangementItem, Section, Song, StepsPerBar, Track, TrackJSON, Tra
 import {
   DEFAULT_SECTION_ID,
   MAX_TRACKS_PER_SECTION,
+  addArrangementItem,
+  addSection,
+  duplicateSection,
   findSection,
+  fitTracksToSection,
+  moveArrangementItem,
   patternToSong,
   reconcileVelocity,
+  removeArrangementItem,
+  removeSection,
+  renameSection,
+  setArrangementRepeat,
+  setArrangementSection,
+  setSectionBars,
+  setStepVelocity,
+  validateSong,
 } from "@lib/song";
-import { deriveUiState, compileCode, selectSong } from "../helpers";
+import type { VelocityLevel } from "@lib/song";
+import { deriveUiState, compileCode, selectSong, songTracks } from "../helpers";
 import type { SessionStore } from "../sessionStore";
 
 export const defaultKickTrack: Track = {
@@ -48,6 +62,19 @@ export type TracksSlice = {
   deleteTrack: (id: string) => void;
   loadPattern: (pattern: TrackJSON) => void;
   syncCodePattern: (pattern: TrackJSON, code: string) => void;
+  // TASK-25: edición de secciones, arreglo y velocidad. Ninguna llama al LLM (BR-008);
+  // todas recompilan el código de la canción (BR-009) y no tocan el transporte (BR-001).
+  setStepVelocity: (trackId: string, stepIndex: number, level: VelocityLevel) => void;
+  addSection: (name: string) => void;
+  duplicateSection: (sectionId: string, name: string) => void;
+  renameSection: (sectionId: string, name: string) => void;
+  deleteSection: (sectionId: string) => void;
+  setSectionBars: (sectionId: string, bars: number) => void;
+  addArrangementItem: (sectionId: string) => void;
+  removeArrangementItem: (index: number) => void;
+  moveArrangementItem: (from: number, to: number) => void;
+  setArrangementRepeat: (index: number, repeat: number) => void;
+  setArrangementSection: (index: number, sectionId: string) => void;
 };
 
 /**
@@ -65,6 +92,41 @@ function commitTracks(state: SessionStore, tracks: Track[], bpm: number = state.
     bpm,
     sections,
     currentCode: compileCode(selectSong({ ...state, bpm, sections })),
+    isCodeManuallyEdited: false,
+  };
+}
+
+/** Hay algo que sonar en alguna sección (no solo en la activa). */
+function songHasTracks(sections: Section[]): boolean {
+  return songTracks(sections).length > 0;
+}
+
+/**
+ * Un patrón de 16 pasos (LLM o parser de código) que entra en una sección de varios compases
+ * se completa con silencio hasta la longitud de la sección, para que la canción siga siendo válida.
+ */
+function fitToActiveSection(state: SessionStore, tracks: Track[]): Track[] {
+  const section = findSection(selectSong(state), state.activeSectionId);
+  if (!section || section.bars === 1) return tracks;
+  const song = fitTracksToSection(selectSong(state), section.id, tracks);
+  return findSection(song, section.id)?.tracks ?? tracks;
+}
+
+/**
+ * Sustituye la estructura de la canción (secciones y arreglo) y recompila. Una canción que
+ * no pasa validateSong se descarta entera, así que una edición no puede dejar el audio ni el
+ * código en un estado inválido.
+ * @see CAP-NLM-015
+ */
+function commitSong(state: SessionStore, song: Song, activeSectionId: string = state.activeSectionId) {
+  if (!validateSong(song).ok) return state;
+  const active = findSection(song, activeSectionId) ?? song.sections[0];
+  return {
+    sections: song.sections,
+    arrangement: song.arrangement,
+    activeSectionId: active.id,
+    tracks: active.tracks,
+    currentCode: compileCode(song),
     isCodeManuallyEdited: false,
   };
 }
@@ -97,7 +159,7 @@ export const createTracksSlice: StateCreator<
     set((state) => {
       const active = findSection(song, song.arrangement[0]?.sectionId ?? "") ?? song.sections[0];
       const tracks = active?.tracks ?? [];
-      const nextIsPlaying = tracks.length > 0 ? state.isPlaying : false;
+      const nextIsPlaying = songTracks(song.sections).length > 0 ? state.isPlaying : false;
       return {
         bpm: song.bpm,
         stepsPerBar: song.stepsPerBar,
@@ -108,7 +170,7 @@ export const createTracksSlice: StateCreator<
         currentCode: compileCode(song),
         isCodeManuallyEdited: false,
         isPlaying: nextIsPlaying,
-        uiState: deriveUiState(tracks, nextIsPlaying),
+        uiState: deriveUiState(songTracks(song.sections), nextIsPlaying),
       };
     }),
 
@@ -131,11 +193,13 @@ export const createTracksSlice: StateCreator<
    */
   setTracks: (tracks) =>
     set((state) => {
-      const nextIsPlaying = tracks.length > 0 ? state.isPlaying : false;
+      const committed = commitTracks(state, tracks);
+      const hasTracks = songHasTracks(committed.sections);
+      const nextIsPlaying = hasTracks ? state.isPlaying : false;
       return {
-        ...commitTracks(state, tracks),
+        ...committed,
         isPlaying: nextIsPlaying,
-        uiState: deriveUiState(tracks, nextIsPlaying),
+        uiState: deriveUiState(songTracks(committed.sections), nextIsPlaying),
       };
     }),
 
@@ -237,11 +301,13 @@ export const createTracksSlice: StateCreator<
   deleteTrack: (id) =>
     set((state) => {
       const nextTracks = state.tracks.filter((t) => t.id !== id);
-      const nextIsPlaying = nextTracks.length > 0 ? state.isPlaying : false;
+      const committed = commitTracks(state, nextTracks);
+      const hasTracks = songHasTracks(committed.sections);
+      const nextIsPlaying = hasTracks ? state.isPlaying : false;
       return {
-        ...commitTracks(state, nextTracks),
+        ...committed,
         isPlaying: nextIsPlaying,
-        uiState: deriveUiState(nextTracks, nextIsPlaying),
+        uiState: deriveUiState(songTracks(committed.sections), nextIsPlaying),
       };
     }),
 
@@ -254,7 +320,7 @@ export const createTracksSlice: StateCreator<
    */
   loadPattern: (pattern) =>
     set((state) => {
-      const nextTracks = pattern.tracks.slice(0, MAX_TRACKS_PER_SECTION); // BR-006 defensa
+      const nextTracks = fitToActiveSection(state, pattern.tracks.slice(0, MAX_TRACKS_PER_SECTION)); // BR-006 defensa
       const committed = commitTracks(state, nextTracks, pattern.bpm);
       const isSingleBar =
         state.sections.length === 1 &&
@@ -278,7 +344,7 @@ export const createTracksSlice: StateCreator<
    */
   syncCodePattern: (pattern, code) =>
     set((state) => {
-      const nextTracks = pattern.tracks.slice(0, MAX_TRACKS_PER_SECTION); // BR-006 cap defensivo
+      const nextTracks = fitToActiveSection(state, pattern.tracks.slice(0, MAX_TRACKS_PER_SECTION)); // BR-006 cap defensivo
       const nextIsPlaying = nextTracks.length > 0 ? state.isPlaying : false;
       return {
         ...commitTracks(state, nextTracks, pattern.bpm),
@@ -287,4 +353,59 @@ export const createTracksSlice: StateCreator<
         uiState: deriveUiState(nextTracks, nextIsPlaying),
       };
     }),
+
+  // --- TASK-25: secciones, arreglo y velocidad (juntas para facilitar el merge con TASK-27) ---
+
+  setStepVelocity: (trackId, stepIndex, level) =>
+    set((state) => {
+      const tracks = state.tracks.map((track) =>
+        track.id === trackId ? setStepVelocity(track, stepIndex, level) : track,
+      );
+      return commitTracks(state, tracks);
+    }),
+
+  addSection: (name) =>
+    set((state) => {
+      const { song, sectionId } = addSection(selectSong(state), name, state.activeSectionId);
+      return commitSong(state, song, sectionId);
+    }),
+
+  duplicateSection: (sectionId, name) =>
+    set((state) => {
+      const { song, sectionId: copyId } = duplicateSection(selectSong(state), sectionId, name);
+      return commitSong(state, song, copyId);
+    }),
+
+  renameSection: (sectionId, name) =>
+    set((state) => commitSong(state, renameSection(selectSong(state), sectionId, name))),
+
+  // BR-007: eliminar una sección es destructivo; también elimina sus bloques del arreglo.
+  deleteSection: (sectionId) =>
+    set((state) => {
+      const before = selectSong(state);
+      const song = removeSection(before, sectionId);
+      if (song === before) return state;
+      const index = before.sections.findIndex((section) => section.id === sectionId);
+      const fallback = song.sections[Math.max(0, index - 1)] ?? song.sections[0];
+      const nextActive = state.activeSectionId === sectionId ? fallback.id : state.activeSectionId;
+      return commitSong(state, song, nextActive);
+    }),
+
+  setSectionBars: (sectionId, bars) =>
+    set((state) => commitSong(state, setSectionBars(selectSong(state), sectionId, bars))),
+
+  addArrangementItem: (sectionId) =>
+    set((state) => commitSong(state, addArrangementItem(selectSong(state), sectionId))),
+
+  removeArrangementItem: (index) =>
+    set((state) => commitSong(state, removeArrangementItem(selectSong(state), index))),
+
+  moveArrangementItem: (from, to) =>
+    set((state) => commitSong(state, moveArrangementItem(selectSong(state), from, to))),
+
+  setArrangementRepeat: (index, repeat) =>
+    set((state) => commitSong(state, setArrangementRepeat(selectSong(state), index, repeat))),
+
+  setArrangementSection: (index, sectionId) =>
+    set((state) => commitSong(state, setArrangementSection(selectSong(state), index, sectionId))),
 });

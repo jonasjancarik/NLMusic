@@ -8,7 +8,8 @@ import { VolumeSlider } from './VolumeSlider';
 
 interface TrackCardProps {
   track: Track;
-  activeStep: number;
+  /** Compás y paso que suenan ahora en esta sección, o null si no suena. */
+  playhead?: { bar: number; step: number } | null;
 }
 
 /**
@@ -18,11 +19,12 @@ interface TrackCardProps {
  * @see BR-007 Eliminar pista es irreversible y no solicita confirmación
  * @see EC-007/EC-008 Si es la última pista, el store transiciona a IDLE
  */
-export function TrackCard({ track, activeStep }: TrackCardProps) {
+export function TrackCard({ track, playhead = null }: TrackCardProps) {
   const t = useTranslation();
   const toggleMute = useSessionStore((s) => s.toggleMute);
   const toggleSolo = useSessionStore((s) => s.toggleSolo);
   const deleteTrack = useSessionStore((s) => s.deleteTrack);
+  const stepsPerBar = useSessionStore((s) => s.stepsPerBar);
   const tag = track.tag ?? 'perc';
 
   return (
@@ -86,8 +88,10 @@ export function TrackCard({ track, activeStep }: TrackCardProps) {
       <Sequencer
         trackId={track.id}
         steps={track.steps}
+        velocity={track.velocity}
         tag={tag}
-        activeStep={activeStep}
+        stepsPerBar={stepsPerBar}
+        playhead={playhead}
       />
     </article>
   );

@@ -14,6 +14,11 @@ export function deriveUiState(tracks: Track[], isPlaying: boolean): UiState {
   return isPlaying ? "playing" : "paused";
 }
 
+/** Todas las pistas de la canción; el estado de reproducción depende de la canción entera, no de la sección visible. */
+export function songTracks(sections: Song["sections"]): Track[] {
+  return sections.flatMap((section) => section.tracks);
+}
+
 /**
  * Compila la canción completa a Strudel de forma determinista.
  * Se reutiliza en slices para mantener coherencia grid <-> código. Una canción de

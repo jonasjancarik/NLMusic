@@ -1,5 +1,5 @@
 import type { StateCreator } from "zustand";
-import { deriveUiState } from "../helpers";
+import { deriveUiState, songTracks } from "../helpers";
 import { initialSong } from "./tracksSlice";
 import { compileCode } from "../helpers";
 import type { SessionStore } from "../sessionStore";
@@ -37,7 +37,7 @@ export const createAudioSlice: StateCreator<
   setPlaying: (value) =>
     set((state) => ({
       isPlaying: value,
-      uiState: deriveUiState(state.tracks, value),
+      uiState: deriveUiState(songTracks(state.sections), value),
     })),
 
   setCurrentCode: (code) => set({ currentCode: code }),

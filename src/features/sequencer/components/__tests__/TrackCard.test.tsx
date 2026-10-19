@@ -35,7 +35,7 @@ describe('TrackCard — TASK-07: Eliminar pista desde UI (CAP-NLM-003)', () => {
 
   describe('Delete button rendering', () => {
     it('renders the delete button (✕)', () => {
-      render(<TrackCard track={mockTrack} activeStep={0} />)
+      render(<TrackCard track={mockTrack} />)
 
       const deleteButton = screen.getByRole('button', { name: /Eliminar pista Kick/i })
       expect(deleteButton).toBeInTheDocument()
@@ -43,21 +43,21 @@ describe('TrackCard — TASK-07: Eliminar pista desde UI (CAP-NLM-003)', () => {
     })
 
     it('has aria-label for accessibility', () => {
-      render(<TrackCard track={mockTrack} activeStep={0} />)
+      render(<TrackCard track={mockTrack} />)
 
       const deleteButton = screen.getByRole('button', { name: /Eliminar pista Kick/i })
       expect(deleteButton).toHaveAttribute('aria-label', 'Eliminar pista Kick')
     })
 
     it('has correct styling classes for delete button', () => {
-      render(<TrackCard track={mockTrack} activeStep={0} />)
+      render(<TrackCard track={mockTrack} />)
 
       const deleteButton = screen.getByRole('button', { name: /Eliminar pista Kick/i })
       expect(deleteButton).toHaveClass('h-7', 'w-7', 'rounded-[4px]')
     })
 
     it('BR-007: delete button has visual feedback on hover', () => {
-      render(<TrackCard track={mockTrack} activeStep={0} />)
+      render(<TrackCard track={mockTrack} />)
 
       const deleteButton = screen.getByRole('button', { name: /Eliminar pista Kick/i })
       // The button should have hover:text-[var(--red)] class
@@ -68,7 +68,7 @@ describe('TrackCard — TASK-07: Eliminar pista desde UI (CAP-NLM-003)', () => {
   describe('Delete button interaction', () => {
     it('BR-007: clicking delete button calls deleteTrack with correct track id', () => {
       const spy = vi.spyOn(useSessionStore.getState(), 'deleteTrack')
-      render(<TrackCard track={mockTrack} activeStep={0} />)
+      render(<TrackCard track={mockTrack} />)
 
       const deleteButton = screen.getByRole('button', { name: /Eliminar pista Kick/i })
       fireEvent.click(deleteButton)
@@ -78,7 +78,7 @@ describe('TrackCard — TASK-07: Eliminar pista desde UI (CAP-NLM-003)', () => {
     })
 
     it('BR-007: delete action is destructive and irreversible (no confirmation dialog)', () => {
-      render(<TrackCard track={mockTrack} activeStep={0} />)
+      render(<TrackCard track={mockTrack} />)
 
       const deleteButton = screen.getByRole('button', { name: /Eliminar pista Kick/i })
       fireEvent.click(deleteButton)
@@ -95,7 +95,7 @@ describe('TrackCard — TASK-07: Eliminar pista desde UI (CAP-NLM-003)', () => {
         uiState: 'playing',
       })
 
-      render(<TrackCard track={mockTrack} activeStep={0} />)
+      render(<TrackCard track={mockTrack} />)
       const deleteButton = screen.getByRole('button', { name: /Eliminar pista Kick/i })
       fireEvent.click(deleteButton)
 
@@ -112,7 +112,7 @@ describe('TrackCard — TASK-07: Eliminar pista desde UI (CAP-NLM-003)', () => {
         uiState: 'paused',
       })
 
-      render(<TrackCard track={mockTrack} activeStep={0} />)
+      render(<TrackCard track={mockTrack} />)
       const deleteButton = screen.getByRole('button', { name: /Eliminar pista Kick/i })
       fireEvent.click(deleteButton)
 
@@ -139,7 +139,7 @@ describe('TrackCard — TASK-07: Eliminar pista desde UI (CAP-NLM-003)', () => {
         uiState: 'playing',
       })
 
-      render(<TrackCard track={mockTrack} activeStep={0} />)
+      render(<TrackCard track={mockTrack} />)
       const deleteButton = screen.getByRole('button', { name: /Eliminar pista Kick/i })
       fireEvent.click(deleteButton)
 
@@ -176,7 +176,7 @@ describe('TrackCard — TASK-07: Eliminar pista desde UI (CAP-NLM-003)', () => {
         uiState: 'paused',
       })
 
-      render(<TrackCard track={snareTrack} activeStep={0} />)
+      render(<TrackCard track={snareTrack} />)
       const deleteButton = screen.getByRole('button', { name: /Eliminar pista Snare/i })
       fireEvent.click(deleteButton)
 
@@ -188,7 +188,7 @@ describe('TrackCard — TASK-07: Eliminar pista desde UI (CAP-NLM-003)', () => {
   describe('Delete button with different track states', () => {
     it('renders delete button on muted track', () => {
       const mutedTrack = { ...mockTrack, muted: true }
-      render(<TrackCard track={mutedTrack} activeStep={0} />)
+      render(<TrackCard track={mutedTrack} />)
 
       const deleteButton = screen.getByRole('button', { name: /Eliminar pista Kick/i })
       expect(deleteButton).toBeInTheDocument()
@@ -196,7 +196,7 @@ describe('TrackCard — TASK-07: Eliminar pista desde UI (CAP-NLM-003)', () => {
 
     it('renders delete button on soloed track', () => {
       const soloedTrack = { ...mockTrack, solo: true }
-      render(<TrackCard track={soloedTrack} activeStep={0} />)
+      render(<TrackCard track={soloedTrack} />)
 
       const deleteButton = screen.getByRole('button', { name: /Eliminar pista Kick/i })
       expect(deleteButton).toBeInTheDocument()
@@ -205,7 +205,7 @@ describe('TrackCard — TASK-07: Eliminar pista desde UI (CAP-NLM-003)', () => {
     it('renders delete button regardless of track volume', () => {
       [0, 0.5, 1.0].forEach((volume) => {
         const trackWithVolume = { ...mockTrack, volume }
-        const { unmount } = render(<TrackCard track={trackWithVolume} activeStep={0} />)
+        const { unmount } = render(<TrackCard track={trackWithVolume} />)
 
         const deleteButton = screen.getByRole('button', { name: /Eliminar pista Kick/i })
         expect(deleteButton).toBeInTheDocument()
@@ -241,7 +241,7 @@ describe('TrackCard — TASK-07: Eliminar pista desde UI (CAP-NLM-003)', () => {
         isPlaying: true,
       })
 
-      const { unmount } = render(<TrackCard track={track1} activeStep={0} />)
+      const { unmount } = render(<TrackCard track={track1} />)
       const deleteButton1 = screen.getByRole('button', { name: /Eliminar pista Track 1/i })
       fireEvent.click(deleteButton1)
 
@@ -256,7 +256,7 @@ describe('TrackCard — TASK-07: Eliminar pista desde UI (CAP-NLM-003)', () => {
         isPlaying: true,
       })
 
-      render(<TrackCard track={track2} activeStep={0} />)
+      render(<TrackCard track={track2} />)
       const deleteButton2 = screen.getByRole('button', { name: /Eliminar pista Track 2/i })
       fireEvent.click(deleteButton2)
 

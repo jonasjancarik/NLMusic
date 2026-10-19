@@ -6,3 +6,6 @@ export { patternToSong, findSection, replaceSectionTracks, totalBars, reconcileV
 export { compileSong } from './compileSong';
 export { validateSong, songSchema } from './validation';
 export type { SongValidationError, SongValidationResult } from './validation';
+export * from './editing';
+export { locatePlayhead, cyclesToBars, msUntilNextBar, CYCLES_PER_BAR } from './playhead';
+export type { PlayheadPosition } from './playhead';
