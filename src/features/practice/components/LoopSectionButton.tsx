@@ -1,8 +1,11 @@
 'use client';
 
+import { Repeat } from 'lucide-react';
 import { useSessionStore } from '@store/sessionStore';
 import { useTranslation } from '@lib/i18n';
 import { useLoopSection } from '../hooks/usePracticeControls';
+
+const base = 'flex h-8 items-center gap-1.5 rounded-[8px] border px-2.5 text-[12px] transition-colors';
 
 /**
  * Botón para repetir en bucle la sección elegida, o volver a la canción completa.
@@ -27,20 +30,22 @@ export function LoopSectionButton() {
         onClick={() => changeLoop(onActive ? null : activeSectionId)}
         title={t('practice.loopHint')}
         className={[
-          'h-7 rounded-[4px] border px-2 text-[11px] transition-all',
+          base,
           onActive
-            ? 'border-[var(--border-active)] bg-[rgba(0,255,200,0.08)] text-[var(--cyan)]'
-            : 'border-[var(--border)] bg-[var(--surface2)] text-[var(--text)] hover:border-[var(--border-active)]',
+            ? 'border-[var(--border-active)] bg-[rgba(0,255,200,0.1)] text-[var(--cyan)]'
+            : 'border-[var(--border)] bg-[var(--surface2)] text-[var(--text)] hover:border-[var(--border-strong)] hover:bg-[var(--surface3)]',
         ].join(' ')}
       >
-        ↻ {onActive ? t('practice.loopStop') : t('practice.loopThis')}
+        <Repeat size={12} strokeWidth={2} aria-hidden className={onActive ? '' : 'text-[var(--text-dim)]'} />
+        {onActive ? t('practice.loopStop') : t('practice.loopThis')}
       </button>
       {looping && !onActive && (
         <button
           type="button"
           onClick={() => changeLoop(null)}
-          className="h-7 rounded-[4px] border border-[var(--border)] bg-[var(--surface2)] px-2 text-[11px] text-[var(--cyan)] hover:border-[var(--border-active)]"
+          className={`${base} border-[var(--border-active)] bg-[rgba(0,255,200,0.06)] text-[var(--cyan)] hover:bg-[rgba(0,255,200,0.12)]`}
         >
+          <Repeat size={12} strokeWidth={2} aria-hidden />
           {t('practice.loopingOther')} “{loopName}” · {t('practice.loopStop')}
         </button>
       )}

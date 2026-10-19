@@ -26,28 +26,30 @@ export function BpmControl({ disabled = false, disabledReason }: BpmControlProps
   const setBpm = useSessionStore((s) => s.setBpm);
 
   return (
-    <div className="flex items-center gap-4 mr-3">
-      <span className="text-[9px] uppercase tracking-[0.18em] text-[var(--text-muted)]">BPM</span>
+    <div className="flex items-center gap-1">
       <button
         type="button"
         title={disabledReason}
         aria-label={t('bpm.decrementLabel')}
         disabled={disabled}
-        className="h-[22px] w-[22px] rounded-[4px] border border-[var(--border)] bg-[var(--surface2)] text-[var(--text)] transition-colors hover:border-[var(--border-active)] hover:text-[var(--cyan)]"
+        className="flex h-6 w-6 items-center justify-center rounded-full text-[var(--text-dim)] transition-colors hover:bg-[var(--surface3)] hover:text-[var(--text)] disabled:cursor-not-allowed disabled:hover:bg-transparent"
         onClick={() => setBpm(bpm - 1)}
       >
-        <Minus size={14} strokeWidth={2} className="text-current" />
+        <Minus size={13} strokeWidth={2} className="text-current" />
       </button>
-      <span className="min-w-12 text-center text-[22px] font-bold leading-none text-[var(--text)]">{shownBpm}</span>
+      <span className="flex min-w-[58px] items-baseline justify-center gap-1">
+        <span className="tabular text-[20px] font-semibold leading-none text-[var(--text)]">{shownBpm}</span>
+        <span className="text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">BPM</span>
+      </span>
       <button
         type="button"
         title={disabledReason}
         aria-label={t('bpm.incrementLabel')}
         disabled={disabled}
-        className="h-[22px] w-[22px] rounded-[4px] border border-[var(--border)] bg-[var(--surface2)] text-[var(--text)] transition-colors hover:border-[var(--border-active)] hover:text-[var(--cyan)]"
+        className="flex h-6 w-6 items-center justify-center rounded-full text-[var(--text-dim)] transition-colors hover:bg-[var(--surface3)] hover:text-[var(--text)] disabled:cursor-not-allowed disabled:hover:bg-transparent"
         onClick={() => setBpm(bpm + 1)}
       >
-        <Plus size={14} strokeWidth={2} className="text-current" />
+        <Plus size={13} strokeWidth={2} className="text-current" />
       </button>
     </div>
   );

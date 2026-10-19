@@ -70,11 +70,11 @@ describe('TrackZone — TASK-03 counter visibility', () => {
       isCodeManuallyEdited: true,
     })
 
-    const { container } = render(<TrackZone />)
+    render(<TrackZone />)
 
     expect(
       screen.getByText('Editado manualmente — el grid puede no reflejar el código actual')
     ).toBeInTheDocument()
-    expect(container.querySelector('.transition-opacity')).toHaveStyle({ opacity: '0.5' })
+    expect(screen.getByTestId('track-grid')).toHaveStyle({ opacity: '0.5' })
   })
 })

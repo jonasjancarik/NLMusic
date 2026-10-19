@@ -49,7 +49,7 @@ describe('PromptBox — EC-010: disabled when motorAvailable=false', () => {
       render(<PromptBox motorAvailable />)
 
       const textarea = screen.getByRole('textbox')
-      expect(textarea.getAttribute('placeholder')).toContain('kick 909')
+      expect(textarea.getAttribute('placeholder')).toContain('bombo 909')
     })
 
     it('textarea has no title attribute when enabled', () => {

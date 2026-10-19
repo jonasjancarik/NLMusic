@@ -129,24 +129,7 @@ export function PlayControls({ disabled = false, disabledReason }: PlayControlsP
   };
 
   return (
-    <div className="flex items-center gap-3 mr-3">
-      <button
-        type="button"
-        aria-label={t('transport.stop')}
-        title={disabledReason}
-        disabled={disabled}
-        onClick={handleStop}
-        className={[
-          'h-12 w-12 rounded-[6px] border text-[15px] leading-none transition-all',
-          stopFlash
-            ? 'border-[var(--cyan)] bg-[rgba(0,255,200,0.16)] text-[var(--cyan)]'
-            : 'border-[var(--border)] bg-transparent text-[var(--text)] hover:border-[var(--border-active)]',
-          disabled ? 'cursor-not-allowed opacity-70 hover:border-[var(--border)]' : '',
-        ].join(' ')}
-      >
-        <Square size={16} strokeWidth={1.5} className="text-current" />
-      </button>
-
+    <div className="flex items-center gap-1.5">
       <button
         type="button"
         aria-label={t('transport.play')}
@@ -154,14 +137,31 @@ export function PlayControls({ disabled = false, disabledReason }: PlayControlsP
         disabled={disabled}
         onClick={() => void handlePlayToggle()}
         className={[
-          'h-12 w-12 rounded-[6px] border text-[15px] leading-none transition-all',
+          'flex h-10 w-10 items-center justify-center rounded-full transition-all',
           isPlaying
-            ? 'border-[var(--cyan)] bg-[rgba(0,255,200,0.12)] text-[var(--cyan)] shadow-[0_0_8px_rgba(0,255,200,0.35)]'
-            : 'border-[var(--border)] bg-transparent text-[var(--text)] hover:border-[var(--border-active)]',
-          disabled ? 'cursor-not-allowed opacity-70 hover:border-[var(--border)]' : '',
+            ? 'animate-play-ring bg-[var(--cyan)] text-[#06221b]'
+            : 'bg-[var(--text)] text-[#0b0b0f] hover:scale-[1.04] hover:bg-white',
+          disabled ? 'cursor-not-allowed opacity-70 hover:scale-100' : '',
         ].join(' ')}
       >
-        <Play size={16} strokeWidth={1.5} className="text-current" />
+        <Play size={16} strokeWidth={0} fill="currentColor" className="ml-[2px] text-current" />
+      </button>
+
+      <button
+        type="button"
+        aria-label={t('transport.stop')}
+        title={disabledReason}
+        disabled={disabled}
+        onClick={handleStop}
+        className={[
+          'flex h-9 w-9 items-center justify-center rounded-full transition-all',
+          stopFlash
+            ? 'bg-[rgba(0,255,200,0.16)] text-[var(--cyan)]'
+            : 'text-[var(--text-dim)] hover:bg-[var(--surface3)] hover:text-[var(--text)]',
+          disabled ? 'cursor-not-allowed opacity-70 hover:bg-transparent' : '',
+        ].join(' ')}
+      >
+        <Square size={13} strokeWidth={0} fill="currentColor" className="text-current" />
       </button>
     </div>
   );

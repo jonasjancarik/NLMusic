@@ -1,24 +1,30 @@
 'use client';
 
 import { useState } from 'react';
+import { Copy, Minus, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useSessionStore } from '@store/sessionStore';
 import { useTranslation } from '@lib/i18n';
 import { MAX_BARS, MIN_BARS } from '@lib/song';
 import { LoopSectionButton } from '@features/practice';
+import { sectionColor, withAlpha } from '../colors';
 
 interface SectionTabsProps {
   /** Sección que está sonando ahora, para marcarla en su pestaña. */
   playingSectionId?: string | null;
 }
 
-const iconButton =
-  'h-7 rounded-[4px] border border-[var(--border)] bg-[var(--surface2)] px-2 text-[11px] text-[var(--text)] ' +
-  'transition-all hover:border-[var(--border-active)] disabled:cursor-not-allowed disabled:opacity-40';
+const toolButton =
+  'flex h-8 items-center gap-1.5 rounded-[8px] border border-[var(--border)] bg-[var(--surface2)] px-2.5 text-[12px] text-[var(--text)] ' +
+  'transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface3)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-[var(--surface2)]';
+
+const stepper =
+  'flex h-6 w-6 items-center justify-center rounded-[6px] text-[var(--text-dim)] transition-colors hover:bg-[var(--surface3)] hover:text-[var(--text)] disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent';
 
 /**
- * Pestañas de sección sobre el grid: elegir, añadir, renombrar, duplicar y eliminar, y la
- * duración en compases de la sección elegida. Solo edita la canción en el store; no llama
- * al LLM (BR-008) ni toca el transporte (BR-001).
+ * Cabecera del editor de secciones: pestañas para elegir la sección que muestra el grid y
+ * una barra con lo que se puede hacer con ella (renombrar, duración en compases, duplicar,
+ * repetir en bucle, eliminar). Solo edita la canción en el store; no llama al LLM (BR-008)
+ * ni toca el transporte (BR-001).
  * @see TASK-25 AC-1
  * @see BR-007 Eliminar una sección es destructivo e irreversible
  */
@@ -35,7 +41,9 @@ export function SectionTabs({ playingSectionId = null }: SectionTabsProps) {
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [draftName, setDraftName] = useState('');
 
-  const active = sections.find((section) => section.id === activeSectionId) ?? sections[0];
+  const activeIndex = Math.max(0, sections.findIndex((section) => section.id === activeSectionId));
+  const active = sections[activeIndex];
+  const activeColor = sectionColor(activeIndex);
 
   const startRename = () => {
     setDraftName(active.name);
@@ -47,12 +55,13 @@ export function SectionTabs({ playingSectionId = null }: SectionTabsProps) {
   };
 
   return (
-    <div className="flex flex-col gap-2 px-5 pt-3 pb-2" data-testid="section-tabs">
+    <div className="flex flex-col gap-3 border-b border-[var(--border)] px-4 pb-3 pt-3" data-testid="section-tabs">
       <div className="flex flex-wrap items-center gap-1.5">
-        <div role="tablist" aria-label={t('song.sectionsLabel')} className="flex flex-wrap items-center gap-1.5">
-          {sections.map((section) => {
+        <div role="tablist" aria-label={t('song.sectionsLabel')} className="flex flex-wrap items-center gap-1">
+          {sections.map((section, index) => {
             const selected = section.id === active.id;
             const playing = section.id === playingSectionId;
+            const color = sectionColor(index);
             return renamingId === section.id ? (
               <input
                 key={section.id}
@@ -67,7 +76,8 @@ export function SectionTabs({ playingSectionId = null }: SectionTabsProps) {
                   if (event.key === 'Enter') commitRename();
                   if (event.key === 'Escape') setRenamingId(null);
                 }}
-                className="h-7 w-32 rounded-[4px] border border-[var(--border-active)] bg-[var(--surface2)] px-2 text-[11px] text-[var(--text)] outline-none"
+                className="h-8 w-36 rounded-[8px] border bg-[var(--surface2)] px-2.5 text-[13px] text-[var(--text)] outline-none"
+                style={{ borderColor: color }}
               />
             ) : (
               <button
@@ -82,75 +92,85 @@ export function SectionTabs({ playingSectionId = null }: SectionTabsProps) {
                   setRenamingId(section.id);
                 }}
                 className={[
-                  'flex h-7 items-center gap-1.5 rounded-[4px] border px-3 text-[11px] transition-all',
-                  selected
-                    ? 'border-[var(--border-active)] bg-[rgba(0,255,200,0.08)] text-[var(--cyan)]'
-                    : 'border-[var(--border)] bg-transparent text-[var(--text-dim)] hover:text-[var(--text)]',
+                  'relative flex h-8 items-center gap-2 rounded-[8px] px-3 text-[13px] transition-colors',
+                  selected ? 'font-semibold text-[var(--text)]' : 'text-[var(--text-dim)] hover:bg-[var(--surface2)] hover:text-[var(--text)]',
                 ].join(' ')}
+                style={selected ? { background: withAlpha(color, 0.13), boxShadow: `inset 0 0 0 1px ${withAlpha(color, 0.45)}` } : undefined}
               >
-                {playing && (
-                  <span
-                    aria-label={t('song.playingNow')}
-                    className="inline-block h-[6px] w-[6px] rounded-full bg-[var(--cyan)] shadow-[0_0_6px_rgba(0,255,200,0.8)]"
-                  />
-                )}
+                <span
+                  aria-hidden={!playing}
+                  aria-label={playing ? t('song.playingNow') : undefined}
+                  className={['inline-block h-2 w-2 rounded-full', playing ? 'animate-pulse-dot' : ''].join(' ')}
+                  style={{ background: color, boxShadow: playing ? `0 0 8px ${color}` : undefined }}
+                />
                 {section.name}
               </button>
             );
           })}
         </div>
-        <button type="button" className={iconButton} onClick={() => addSection(`${t('song.defaultSectionName')} ${sections.length + 1}`)}>
-          + {t('song.addSection')}
+        <button
+          type="button"
+          className="flex h-8 items-center gap-1 rounded-[8px] px-2.5 text-[12px] text-[var(--text-dim)] transition-colors hover:bg-[var(--surface2)] hover:text-[var(--text)]"
+          onClick={() => addSection(`${t('song.defaultSectionName')} ${sections.length + 1}`)}
+        >
+          <Plus size={13} strokeWidth={2} aria-hidden />
+          {t('song.addSection')}
         </button>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <button type="button" className={iconButton} onClick={startRename}>
+        <button type="button" className={toolButton} onClick={startRename}>
+          <Pencil size={12} strokeWidth={2} aria-hidden className="text-[var(--text-dim)]" />
           {t('song.rename')}
         </button>
-        <button
-          type="button"
-          className={iconButton}
-          onClick={() => duplicateSection(active.id, `${active.name} (${t('song.copySuffix')})`)}
-        >
-          {t('song.duplicate')}
-        </button>
-        {/* BR-007: destructivo e irreversible, sin confirmación; la última sección no se puede eliminar */}
-        <button
-          type="button"
-          className={`${iconButton} hover:!border-[var(--red)] hover:!text-[var(--red)]`}
-          disabled={sections.length <= 1}
-          onClick={() => deleteSection(active.id)}
-        >
-          {t('song.delete')}
-        </button>
 
-        <LoopSectionButton />
-
-        <div className="ml-auto flex items-center gap-1.5">
-          <span className="text-[10px] uppercase tracking-[0.1em] text-[var(--text-muted)]">{t('song.bars')}</span>
+        <div className="flex h-8 items-center gap-1 rounded-[8px] border border-[var(--border)] bg-[var(--surface2)] pl-2.5 pr-1">
+          <span className="mr-1 text-[12px] text-[var(--text-dim)]">{t('song.length')}</span>
           <button
             type="button"
-            className={iconButton}
+            className={stepper}
             aria-label={t('song.fewerBars')}
             disabled={active.bars <= MIN_BARS}
             onClick={() => setSectionBars(active.id, active.bars - 1)}
           >
-            −
+            <Minus size={12} strokeWidth={2} />
           </button>
-          <span className="w-6 text-center text-[12px] text-[var(--text)]" data-testid="section-bars">
+          <span className="tabular min-w-[18px] text-center text-[13px] font-semibold" style={{ color: activeColor }} data-testid="section-bars">
             {active.bars}
           </span>
           <button
             type="button"
-            className={iconButton}
+            className={stepper}
             aria-label={t('song.moreBars')}
             disabled={active.bars >= MAX_BARS}
             onClick={() => setSectionBars(active.id, active.bars + 1)}
           >
-            +
+            <Plus size={12} strokeWidth={2} />
           </button>
+          <span className="pr-1.5 text-[12px] text-[var(--text-dim)]">{active.bars === 1 ? t('song.barUnit') : t('song.barsUnit')}</span>
         </div>
+
+        <button
+          type="button"
+          className={toolButton}
+          onClick={() => duplicateSection(active.id, `${active.name} (${t('song.copySuffix')})`)}
+        >
+          <Copy size={12} strokeWidth={2} aria-hidden className="text-[var(--text-dim)]" />
+          {t('song.duplicate')}
+        </button>
+
+        <LoopSectionButton />
+
+        {/* BR-007: destructivo e irreversible, sin confirmación; la última sección no se puede eliminar */}
+        <button
+          type="button"
+          className={`${toolButton} ml-auto hover:!border-[rgba(255,68,102,0.45)] hover:!bg-[rgba(255,68,102,0.08)] hover:!text-[var(--red)]`}
+          disabled={sections.length <= 1}
+          onClick={() => deleteSection(active.id)}
+        >
+          <Trash2 size={12} strokeWidth={2} aria-hidden />
+          {t('song.delete')}
+        </button>
       </div>
     </div>
   );

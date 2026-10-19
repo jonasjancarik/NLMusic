@@ -1,5 +1,6 @@
 'use client';
 
+import { Download } from 'lucide-react';
 import { useSessionStore } from '@store/sessionStore';
 import { selectSong } from '@store/helpers';
 import { useTranslation } from '@lib/i18n';
@@ -24,11 +25,13 @@ export function DownloadMidiButton() {
     <button
       type="button"
       onClick={download}
+      aria-label={t('midi.download')}
       disabled={!hasNotes}
       title={hasNotes ? t('midi.downloadTitle') : t('midi.downloadEmpty')}
-      className="rounded border border-[var(--border)] px-2 py-1 text-[10px] uppercase tracking-[0.1em] text-[var(--text-muted)] transition-colors hover:text-[var(--text)] disabled:cursor-not-allowed disabled:opacity-40"
+      className="flex h-8 items-center gap-1.5 rounded-full border border-[var(--border)] px-3 text-[12px] text-[var(--text-dim)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--text)] disabled:cursor-not-allowed disabled:opacity-40"
     >
-      {t('midi.download')}
+      <Download size={13} strokeWidth={2} aria-hidden />
+      <span className="hidden md:inline">{t('midi.download')}</span>
     </button>
   );
 }

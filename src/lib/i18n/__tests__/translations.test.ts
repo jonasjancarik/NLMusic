@@ -155,7 +155,7 @@ describe('translations — i18n dictionary ES/EN', () => {
   describe('Spanish (ES) — specific content', () => {
     it('Spanish placeholder has Spanish examples and tone', () => {
       const placeholder = translations.es['prompt.placeholder']
-      expect(placeholder).toContain('Ej:')
+      expect(placeholder).toContain('p. ej.')
       expect(placeholder.toLowerCase()).toMatch(/kick|snare|techno|oscuro/)
     })
 
@@ -174,7 +174,7 @@ describe('translations — i18n dictionary ES/EN', () => {
   describe('English (EN) — specific content', () => {
     it('English placeholder has English examples and tone', () => {
       const placeholder = translations.en['prompt.placeholder']
-      expect(placeholder).toContain('E.g.:')
+      expect(placeholder).toContain('e.g.')
       expect(placeholder.toLowerCase()).toMatch(/kick|snare|techno|dark/)
     })
 

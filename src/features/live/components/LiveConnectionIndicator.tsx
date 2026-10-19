@@ -16,13 +16,13 @@ export function LiveConnectionIndicator() {
       role="status"
       title={hint}
       data-connection={connection}
-      className="flex items-center gap-1.5 text-[10px] text-[var(--text-muted)]"
+      className="flex items-center gap-1.5 whitespace-nowrap text-[11px] text-[var(--text-dim)]"
     >
       <span
         aria-hidden
         className={[
           'inline-block h-[6px] w-[6px] rounded-full',
-          connection === 'connected' ? 'bg-[var(--cyan)]' : 'bg-white/25',
+          connection === 'connected' ? 'bg-[var(--violet)] shadow-[0_0_6px_rgba(180,130,255,0.8)]' : 'bg-white/25',
         ].join(' ')}
       />
       {label}

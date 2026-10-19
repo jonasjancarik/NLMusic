@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { SendHorizontal, TriangleAlert, RotateCcw } from "lucide-react";
+import { ArrowUp, Sparkles, TriangleAlert, RotateCcw, LoaderCircle } from "lucide-react";
 import { usePatternGen } from "../hooks/usePatternGen";
 import { useSessionStore } from "@store/sessionStore";
 import { useTranslation } from "@lib/i18n";
@@ -63,31 +63,31 @@ export function PromptBox({ motorAvailable = true }: PromptBoxProps) {
 
   return (
     <div
-      className="border-t border-[var(--border)] bg-[var(--surface)]"
+      className="pointer-events-none"
       style={{
         position: "fixed",
         left: 0,
         right: 0,
         bottom: 0,
         zIndex: 60,
-        boxShadow: "0 -8px 24px rgba(0,0,0,0.35)",
+        background: "linear-gradient(180deg, transparent 0%, rgba(8,8,11,0.92) 38%, var(--bg) 100%)",
       }}
     >
-      <div className="mx-auto max-w-[1100px] px-5 py-4">
+      <div className="pointer-events-auto mx-auto max-w-[1280px] px-5 pb-4 pt-6">
         {/* BR-003: banner de error no bloqueante con opción de reintento */}
         {isError && error ? (
-          <div className="mb-2 flex items-center gap-2 rounded-[7px] border border-[rgba(255,68,102,0.3)] bg-[rgba(255,68,102,0.07)] px-3 py-2">
-            <TriangleAlert size={13} className="shrink-0 text-[var(--red)]" />
-            <span className="flex-1 text-[11px] text-[var(--text-dim)]">
+          <div className="mb-2 flex items-center gap-2 rounded-[10px] border border-[rgba(255,68,102,0.3)] bg-[rgba(30,10,14,0.92)] px-3 py-2 backdrop-blur">
+            <TriangleAlert size={14} className="shrink-0 text-[var(--red)]" />
+            <span className="flex-1 text-[12px] text-[var(--text-dim)]">
               {error}
             </span>
             <button
               type="button"
               onClick={retry}
               disabled={isLoading}
-              className="flex items-center gap-1 rounded-[5px] border border-[rgba(255,68,102,0.4)] bg-[rgba(255,68,102,0.12)] px-2 py-1 text-[10px] text-[var(--red)] transition-colors hover:bg-[rgba(255,68,102,0.2)] disabled:opacity-40"
+              className="flex items-center gap-1 rounded-[7px] border border-[rgba(255,68,102,0.4)] bg-[rgba(255,68,102,0.12)] px-2.5 py-1 text-[11px] text-[var(--red)] transition-colors hover:bg-[rgba(255,68,102,0.2)] disabled:opacity-40"
             >
-              <RotateCcw size={10} strokeWidth={2} />
+              <RotateCcw size={11} strokeWidth={2} />
               {t('prompt.retry')}
             </button>
           </div>
@@ -96,19 +96,26 @@ export function PromptBox({ motorAvailable = true }: PromptBoxProps) {
         <div
           title={disabledReason}
           className={[
-            "prompt-wrap flex items-end gap-3 rounded-[10px] border bg-[var(--surface2)] px-3 py-2",
+            "prompt-wrap flex items-end gap-3 rounded-[16px] border bg-[rgba(23,23,29,0.92)] py-2.5 pl-4 pr-2.5 shadow-[0_18px_50px_rgba(0,0,0,0.55)] backdrop-blur-md transition-[border-color,box-shadow]",
             !motorAvailable
               ? "border-[rgba(255,68,102,0.3)] opacity-50 cursor-not-allowed"
               : isError
                 ? "border-[rgba(255,68,102,0.3)] focus-within:border-[rgba(255,68,102,0.5)]"
-                : "border-[var(--border)] focus-within:border-[var(--border-active)] focus-within:shadow-[0_0_0_3px_rgba(0,255,200,0.06)]",
+                : "border-[var(--border-strong)] focus-within:border-[var(--border-active)] focus-within:shadow-[0_0_0_4px_rgba(0,255,200,0.07),0_18px_50px_rgba(0,0,0,0.55)]",
           ].join(" ")}
         >
+          <Sparkles
+            size={16}
+            strokeWidth={1.75}
+            aria-hidden
+            className={["mb-[9px] shrink-0", isLoading ? "animate-pulse text-[var(--cyan)]" : "text-[var(--text-muted)]"].join(" ")}
+          />
           <textarea
             disabled={inputDisabled}
             title={disabledReason}
             ref={textareaRef}
-            className="prompt-input max-h-[80px] min-h-[20px] flex-1 resize-none bg-transparent text-[13px] leading-[1.35] text-[var(--text)] placeholder:text-[var(--text-dim)] focus:outline-none disabled:cursor-not-allowed"
+            rows={1}
+            className="prompt-input mb-[7px] max-h-[80px] [scrollbar-width:none] min-h-[20px] flex-1 resize-none bg-transparent text-[14px] leading-[1.45] text-[var(--text)] placeholder:text-[var(--text-muted)] focus:outline-none disabled:cursor-not-allowed"
             placeholder={motorAvailable ? t('prompt.placeholder') : t('prompt.audioDisabled')}
             value={prompt}
             onChange={(event) => setPrompt(event.target.value)}
@@ -121,25 +128,29 @@ export function PromptBox({ motorAvailable = true }: PromptBoxProps) {
             }}
           />
 
+          <span className="mb-[9px] hidden shrink-0 text-[11px] text-[var(--text-muted)] md:inline">
+            <kbd className="font-sans text-[var(--text-dim)]">Enter</kbd> · <kbd className="font-sans text-[var(--text-dim)]">Shift+Enter</kbd>{" "}
+            {t('prompt.newLine')}
+          </span>
+
           <button
             type="button"
             onClick={() => void handleSubmit()}
             disabled={inputDisabled || !prompt.trim()}
             title={disabledReason}
-            className="h-[34px] w-[34px] rounded-[7px] border border-[var(--border-active)] bg-[rgba(0,255,200,0.12)] text-[var(--cyan)] transition-all hover:bg-[rgba(0,255,200,0.2)] hover:shadow-[0_0_10px_rgba(0,255,200,0.32)] disabled:opacity-45"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--cyan)] text-[#06221b] transition-all hover:shadow-[0_0_14px_rgba(0,255,200,0.45)] disabled:bg-[var(--surface3)] disabled:text-[var(--text-muted)] disabled:shadow-none"
             aria-label={t('prompt.submit')}
           >
-            <SendHorizontal size={16} strokeWidth={1.5} className="text-current" />
+            {isLoading ? (
+              <LoaderCircle size={17} strokeWidth={2.25} className="animate-spin text-current" />
+            ) : (
+              <ArrowUp size={17} strokeWidth={2.25} className="text-current" />
+            )}
           </button>
         </div>
 
-        <p className="mt-2 text-[9px] text-[var(--text-muted)]">
-          <span className="text-[rgba(0,255,200,0.6)]">Enter</span>{' '}
-          · <span className="text-[rgba(0,255,200,0.6)]">Shift+Enter</span>{" "}
-          {t('prompt.newLine')}
-        </p>
         {!isError && info ? (
-          <p className="mt-1 text-[10px] text-[var(--amber)]">{info}</p>
+          <p className="mt-1.5 px-1 text-[11px] text-[var(--amber)]">{info}</p>
         ) : null}
       </div>
     </div>

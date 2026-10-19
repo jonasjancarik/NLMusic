@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Music4 } from 'lucide-react';
 import { useSessionStore } from '@store/sessionStore';
 import { useTranslation } from '@lib/i18n';
 import { totalBars } from '@lib/song';
@@ -32,24 +33,29 @@ export function LiveSongPrompt() {
     acceptLiveSong();
   };
 
-  const buttonClass = 'rounded-[6px] border px-3 py-1.5 text-[11px] transition-colors';
+  const buttonClass = 'rounded-full border px-4 py-1.5 text-[12px] font-medium transition-colors';
 
   return (
     <div
       role="alertdialog"
       aria-labelledby="live-song-title"
-      className="fixed bottom-[132px] right-5 z-[70] w-[320px] max-w-[calc(100vw-32px)] rounded-[8px] border border-[var(--border-active)] bg-[var(--surface)] px-4 py-3 shadow-[0_8px_24px_rgba(0,0,0,0.45)]"
+      className="animate-rise-in fixed bottom-[104px] right-5 z-[70] w-[340px] max-w-[calc(100vw-32px)] rounded-[14px] border border-[rgba(180,130,255,0.35)] bg-[rgba(23,23,29,0.96)] px-4 py-3.5 shadow-[0_20px_60px_rgba(0,0,0,0.6)] backdrop-blur-md"
     >
-      <p id="live-song-title" className="text-[12px] font-medium text-[var(--text)]">
-        {t('live.received')}
-      </p>
-      <p className="mt-1 text-[11px] text-[var(--text-dim)]">
-        {pending.name ? <span className="text-[var(--cyan)]">{pending.name}</span> : null}
+      <div className="flex items-center gap-2.5">
+        <span aria-hidden className="flex h-7 w-7 items-center justify-center rounded-full bg-[rgba(180,130,255,0.15)] text-[var(--violet)]">
+          <Music4 size={14} strokeWidth={2} />
+        </span>
+        <p id="live-song-title" className="text-[14px] font-semibold text-[var(--text)]">
+          {t('live.received')}
+        </p>
+      </div>
+      <p className="mt-2 text-[12px] text-[var(--text-dim)]">
+        {pending.name ? <span className="font-medium text-[var(--text)]">{pending.name}</span> : null}
         {pending.name ? ' · ' : null}
         {song.bpm} {t('live.summaryBpm')} · {song.sections.length} {t('live.summarySections')} · {totalBars(song)}{' '}
         {t('song.barsUnit')}
       </p>
-      {timing && <p className="mt-1 text-[11px] text-[var(--text-muted)]">{timing}</p>}
+      {timing && <p className="mt-1 text-[12px] text-[var(--text-muted)]">{timing}</p>}
 
       {confirming && (
         <p role="alert" className="mt-2 text-[11px] text-[var(--red)]">
@@ -61,14 +67,14 @@ export function LiveSongPrompt() {
         <button
           type="button"
           onClick={() => (confirming ? setConfirmingFor(null) : dismissLiveSong())}
-          className={`${buttonClass} border-[var(--border)] text-[var(--text-dim)] hover:text-[var(--text)]`}
+          className={`${buttonClass} border-[var(--border-strong)] text-[var(--text-dim)] hover:text-[var(--text)]`}
         >
           {confirming ? t('live.keep') : t('live.dismiss')}
         </button>
         <button
           type="button"
           onClick={load}
-          className={`${buttonClass} border-[var(--border-active)] bg-[rgba(0,255,200,0.12)] text-[var(--cyan)] hover:bg-[rgba(0,255,200,0.2)]`}
+          className={`${buttonClass} border-transparent bg-[var(--cyan)] text-[#06221b] hover:shadow-[0_0_14px_rgba(0,255,200,0.45)]`}
         >
           {confirming ? t('live.replace') : t('live.load')}
         </button>

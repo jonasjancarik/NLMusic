@@ -16,7 +16,7 @@ describe('useTranslation — i18n hook', () => {
       const t = useTranslation()
 
       expect(typeof t).toBe('function')
-      expect(t('prompt.placeholder')).toContain('Ej:')
+      expect(t('prompt.placeholder')).toContain('p. ej.')
       expect(t('tabs.sequencer')).toBe('Secuenciador')
     })
 
@@ -26,7 +26,7 @@ describe('useTranslation — i18n hook', () => {
       const t = useTranslation()
 
       expect(typeof t).toBe('function')
-      expect(t('prompt.placeholder')).toContain('E.g.:')
+      expect(t('prompt.placeholder')).toContain('e.g.')
       expect(t('tabs.sequencer')).toBe('Sequencer')
     })
 

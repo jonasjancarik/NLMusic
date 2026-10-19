@@ -3,25 +3,22 @@
 import type { KeyboardEvent, MouseEvent } from 'react';
 import { useTranslation } from '@lib/i18n';
 import { stepVelocityLevel, type VelocityLevel } from '@lib/song';
-
-const stepColors: Record<string, { bg: string; glow: string }> = {
-  kick: { bg: '#00ffc8', glow: 'rgba(0,255,200,0.3)' },
-  snare: { bg: '#ffaa00', glow: 'rgba(255,170,0,0.3)' },
-  hihat: { bg: '#b482ff', glow: 'rgba(180,130,255,0.3)' },
-  default: { bg: '#00ffc8', glow: 'rgba(0,255,200,0.3)' },
-};
+import { withAlpha } from '../colors';
 
 /** Altura y opacidad del relleno según la fuerza del golpe: se ve de un vistazo. */
 const LEVEL_LOOK: Record<VelocityLevel, { height: string; opacity: number }> = {
-  ghost: { height: '38%', opacity: 0.5 },
-  normal: { height: '68%', opacity: 0.8 },
+  ghost: { height: '34%', opacity: 0.55 },
+  normal: { height: '66%', opacity: 0.85 },
   accent: { height: '100%', opacity: 1 },
 };
 
 interface StepButtonProps {
   on: boolean;
   active: boolean;
-  tag: string;
+  /** Color de la voz de la pista (ver `trackColor`). */
+  color: string;
+  /** Primer paso de un tiempo: se marca un poco más claro para leer el compás. */
+  downbeat?: boolean;
   /** Fuerza del paso; solo se usa si `on`. */
   level?: VelocityLevel;
   /** Posición legible, p. ej. "compás 2, paso 3", para lectores de pantalla. */
@@ -35,9 +32,8 @@ interface StepButtonProps {
  * tres fuerzas (suave → normal → fuerte) y las flechas arriba/abajo suben o bajan una.
  * @see TASK-25 AC-3
  */
-export function StepButton({ on, active, tag, level = 'accent', position, onClick, onLevelChange }: StepButtonProps) {
+export function StepButton({ on, active, color, downbeat = false, level = 'accent', position, onClick, onLevelChange }: StepButtonProps) {
   const t = useTranslation();
-  const color = stepColors[tag] ?? stepColors.default;
   const look = LEVEL_LOOK[level];
 
   const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
@@ -57,21 +53,25 @@ export function StepButton({ on, active, tag, level = 'accent', position, onClic
     if (next !== level) onLevelChange(next);
   };
 
+  const idle = active ? 'rgba(255,255,255,0.16)' : downbeat ? 'rgba(255,255,255,0.075)' : 'rgba(255,255,255,0.04)';
+
   return (
     <button
       type="button"
       onClick={handleClick}
       onKeyDown={handleKeyDown}
       className={[
-        'relative flex h-[26px] w-full items-end overflow-hidden rounded-[3px] border transition-all duration-[80ms]',
-        'hover:bg-[rgba(255,255,255,0.1)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--cyan)]',
-        active ? 'outline outline-1 outline-offset-1 outline-[rgba(255,255,255,0.3)]' : '',
+        'relative flex h-[34px] w-full items-end overflow-hidden rounded-[5px] transition-[background,box-shadow,transform] duration-75',
+        'hover:brightness-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--cyan)]',
       ].join(' ')}
       style={{
-        background: 'rgba(255,255,255,0.06)',
-        borderColor: on ? 'transparent' : 'rgba(255,255,255,0.04)',
-        boxShadow: on && level !== 'ghost' ? `0 0 6px ${color.glow}` : 'none',
-        transform: on && active ? 'scaleY(1.08)' : 'scaleY(1)',
+        background: on ? withAlpha(color, 0.14) : idle,
+        boxShadow: on
+          ? `inset 0 0 0 1px ${withAlpha(color, 0.35)}${active ? `, 0 0 14px ${withAlpha(color, 0.7)}` : level === 'accent' ? `, 0 0 8px ${withAlpha(color, 0.18)}` : ''}`
+          : active
+            ? 'inset 0 0 0 1px rgba(255,255,255,0.25)'
+            : 'none',
+        transform: on && active ? 'scale(1.06)' : undefined,
       }}
       aria-pressed={on}
       aria-label={`${t('step.toggleLabel')}${position ? ` ${position}` : ''}${on ? ` (${t(`step.${level}` as const)})` : ''}`}
@@ -80,8 +80,12 @@ export function StepButton({ on, active, tag, level = 'accent', position, onClic
     >
       {on && (
         <span
-          className="block w-full"
-          style={{ height: look.height, opacity: look.opacity, background: color.bg }}
+          className="block w-full rounded-[4px]"
+          style={{
+            height: look.height,
+            opacity: active ? 1 : look.opacity,
+            background: `linear-gradient(180deg, ${color} 0%, ${withAlpha(color, 0.8)} 100%)`,
+          }}
         />
       )}
     </button>

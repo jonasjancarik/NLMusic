@@ -21,8 +21,8 @@ describe('TransportBar — language selector integration (TASK-13)', () => {
     it('TransportBar source has language selector positioned on the right', () => {
       const source = readFileSync(transportBarPath, 'utf-8')
 
-      // Verify positioning
-      expect(source).toContain('absolute right-4')
+      // The right-hand column of the header grid holds the selector
+      expect(source).toContain('justify-end')
     })
 
     it('TransportBar applies different styling for active/inactive language buttons', () => {
@@ -95,7 +95,7 @@ describe('TransportBar — language selector integration (TASK-13)', () => {
 
     it('implements right-aligned positioning', () => {
       const source = readFileSync(transportBarPath, 'utf-8')
-      expect(source).toContain('absolute right-4')
+      expect(source).toContain('justify-end')
     })
   })
 })

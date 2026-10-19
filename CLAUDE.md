@@ -189,6 +189,12 @@ con dependencias y criterios de revisión está en `.claude/tasks/TASK-INDEX.md`
 - `scripts/eval-songs.ts` + `evals/README.md` — set de evaluación; los resultados (`evals/<fecha>/`) están en `.gitignore`
 - Modelo de datos: `SessionContext` añade `song` y `activeSectionId`; el tracks slice añade `loadGeneratedSong`; la API responde `{ song, activeSectionId, strudelCode }` en lugar de `trackJson`
 
+**Rediseño de la interfaz (oct. 2026):**
+- `src/app/globals.css` usa `@import "tailwindcss"` + `@config` (Tailwind 4). Con las directivas `@tailwind` de la v3 no se generaba el tema y faltaban todas las utilidades de espaciado y tamaño. Si el CSS no cambia en desarrollo, borra `.next/dev` (caché de Turbopack).
+- Tokens nuevos (`--surface3`, `--border-strong`), DM Sans para la interfaz y `.tabular` (JetBrains Mono) para cifras.
+- `src/features/sequencer/colors.ts` — color por voz de batería (`trackColor`) y por sección (`sectionColor`); `layout.ts` — ancho de la columna fija de pistas.
+- Arreglo como línea de tiempo: bloques proporcionales a los compases, arrastrar para reordenar, «Reproducir desde aquí» (`usePlayFromBlock` + `arrangementItemStartBar`), menú «Añadir parte». El grid tiene regla de compases, columna de pistas fija y sigue al cabezal.
+
 **Nuevos directorios/archivos (TASK-30, práctica):**
 - `src/lib/practice/` — lógica pura: entrenador de tempo, bucle de sección, partes quitadas, clics (cuenta atrás/metrónomo), `buildPlayCode` y línea de tiempo (`Timeline`). Los clics solo existen en el código que suena, nunca en `Song` ni en el MIDI.
 - `src/store/slices/practiceSlice.ts` + `src/store/practiceSelectors.ts` — preferencias persistidas (cuenta atrás, metrónomo, entrenador) y estado efímero (bucle, partes quitadas, BPM/fase de la sesión); `selectPlayCode` es lo que `PlayControls` manda a Strudel.

@@ -34,12 +34,12 @@ describe('TrackCard — TASK-07: Eliminar pista desde UI (CAP-NLM-003)', () => {
   })
 
   describe('Delete button rendering', () => {
-    it('renders the delete button (✕)', () => {
+    it('renders the delete button (✕ icon)', () => {
       render(<TrackCard track={mockTrack} />)
 
       const deleteButton = screen.getByRole('button', { name: /Eliminar pista Kick/i })
       expect(deleteButton).toBeInTheDocument()
-      expect(deleteButton).toHaveTextContent('✕')
+      expect(deleteButton.querySelector('svg')).not.toBeNull()
     })
 
     it('has aria-label for accessibility', () => {
@@ -53,7 +53,9 @@ describe('TrackCard — TASK-07: Eliminar pista desde UI (CAP-NLM-003)', () => {
       render(<TrackCard track={mockTrack} />)
 
       const deleteButton = screen.getByRole('button', { name: /Eliminar pista Kick/i })
-      expect(deleteButton).toHaveClass('h-7', 'w-7', 'rounded-[4px]')
+      expect(deleteButton).toHaveClass('h-5', 'w-5')
+      // Hidden until the row is hovered or the button gets keyboard focus
+      expect(deleteButton).toHaveClass('opacity-0', 'focus-visible:opacity-100')
     })
 
     it('BR-007: delete button has visual feedback on hover', () => {

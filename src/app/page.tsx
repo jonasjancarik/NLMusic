@@ -1,5 +1,6 @@
 'use client';
 
+import { AudioLines, Code2, SlidersHorizontal } from 'lucide-react';
 import { TransportBar } from '@features/transport';
 import { TrackZone } from '@features/sequencer';
 import { StrudelCodePanel } from '@features/code-view';
@@ -11,9 +12,9 @@ import { StrudelProvider, useStrudelContext } from '@features/audio';
 import { LiveSongInbox } from '@features/live';
 
 const TABS = [
-  { id: 'sequencer' as const, labelKey: 'tabs.sequencer' as const },
-  { id: 'code' as const, labelKey: 'tabs.strudel' as const },
-  { id: 'config' as const, labelKey: 'tabs.config' as const },
+  { id: 'sequencer' as const, labelKey: 'tabs.sequencer' as const, Icon: AudioLines },
+  { id: 'code' as const, labelKey: 'tabs.strudel' as const, Icon: Code2 },
+  { id: 'config' as const, labelKey: 'tabs.config' as const, Icon: SlidersHorizontal },
 ];
 
 /**
@@ -28,17 +29,17 @@ function HomeContent() {
   const setActiveTab = useSessionStore((s) => s.setActiveTab);
 
   // EC-010: el banner de error ocupa ~64px adicionales sobre la TransportBar
-  const contentPaddingTop = strudel.initError ? 128 : 64;
+  const contentPaddingTop = strudel.initError ? 136 : 72;
 
   return (
-    <main className="relative min-h-screen bg-bg">
+    <main className="relative min-h-screen">
       <TransportBar />
 
       {/* EC-010: banner persistente no cerrable — sin Strudel la app no es funcional */}
       {strudel.initError && (
         <div
           className="fixed left-0 right-0 z-[55] border-b border-[rgba(255,68,102,0.3)] bg-[rgba(255,68,102,0.08)]"
-          style={{ top: 58 }}
+          style={{ top: 64 }}
           role="alert"
           aria-live="assertive"
         >
@@ -64,26 +65,31 @@ function HomeContent() {
       )}
 
       <div
-        className="mx-auto flex h-screen max-w-[1100px] flex-col pb-[124px]"
+        className="mx-auto flex h-screen max-w-[1280px] flex-col pb-[118px]"
         style={{ paddingTop: contentPaddingTop }}
       >
-        <div className="flex h-[42px] items-end gap-1 border-b border-[var(--border)] bg-[var(--surface)] px-5">
+        <div className="flex items-center px-5 pb-3 pt-2">
           {/* TASK-12: tercera pestaña de configuracion/guia comparte el mismo router de tabs del store. */}
-          {TABS.map(({ id, labelKey }) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => setActiveTab(id)}
-              className={[
-                'rounded-t-[8px] border border-b-0 px-4 py-2 text-[11px] uppercase tracking-[0.12em] transition-all',
-                activeTab === id
-                  ? 'border-[var(--border-active)] bg-[rgba(0,255,200,0.08)] text-[var(--cyan)]'
-                  : 'border-transparent bg-transparent text-[var(--text-dim)] hover:text-[var(--text)]',
-              ].join(' ')}
-            >
-              {t(labelKey)}
-            </button>
-          ))}
+          <div role="tablist" className="flex items-center gap-1 rounded-full border border-[var(--border)] bg-[var(--surface)] p-1">
+            {TABS.map(({ id, labelKey, Icon }) => (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={activeTab === id}
+                onClick={() => setActiveTab(id)}
+                className={[
+                  'flex items-center gap-2 whitespace-nowrap rounded-full px-3 py-1.5 text-[13px] font-medium transition-all sm:px-4',
+                  activeTab === id
+                    ? 'bg-[var(--surface3)] text-[var(--text)] shadow-[inset_0_0_0_1px_var(--border-strong)]'
+                    : 'text-[var(--text-dim)] hover:text-[var(--text)]',
+                ].join(' ')}
+              >
+                <Icon size={14} strokeWidth={2} aria-hidden className={['hidden sm:block', activeTab === id ? 'text-[var(--cyan)]' : ''].join(' ')} />
+                {t(labelKey)}
+              </button>
+            ))}
+          </div>
         </div>
 
         <section className="min-h-0 flex-1 overflow-hidden">
