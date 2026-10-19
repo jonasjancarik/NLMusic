@@ -124,6 +124,10 @@ Si la task introdujo cambios estructurales (nuevas dependencias, nuevos director
 
 - StrudelContext sin prop drilling y estado mutable encapsulado por instancia en `useRef` para el runtime de audio (TASK-16)
 
+- Sintetizador por pista: `TrackParams` opcional en `Track` (`src/lib/types/audio.ts`), validación Zod (`delayfeedback` ≤ 0.9), `delayTimeMode` en el ui slice (persistido), `applyDelta` fusiona `params` campo a campo (TASK-19)
+- Compilador con `buildParamsChain` (ADSR → filtro lp/hp con `lpq`/`hpq` → room → delay → pan; osciladores vía `note().s().struct()`), acción `updateTrackParams` en el tracks slice y hook `useUpdateTrackParams` sobre StrudelContext (TASK-20)
+- System prompt LLM con referencia de `params` y semántica de merge (TASK-21)
+
 **Pendiente Sprint 2 (orden de ejecución):**
 - TASK-11 — Hap highlighting en tiempo real (flash de tokens al sonar) sobre el editor CodeMirror
 
@@ -145,3 +149,7 @@ Si la task introdujo cambios estructurales (nuevas dependencias, nuevos director
 
  El índice maestro
 con dependencias y criterios de revisión está en `.claude/tasks/TASK-INDEX.md`.
+
+**Nuevos directorios/archivos (TASK-19..21):**
+- `src/features/sequencer/hooks/useUpdateTrackParams.ts` — aplica un patch de params y re-evalúa el código si está sonando
+- `src/lib/llm/prompts/strudelInjection.ts` — referencia de `params` embebida como string e inyectada en `systemPrompt.ts`
