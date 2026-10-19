@@ -1,4 +1,4 @@
-import type { Track, TrackJSON } from '@lib/types';
+import type { Track, TrackJSON, TrackParams } from '@lib/types';
 
 interface CompilableTrack {
   sample?: string;
@@ -7,6 +7,7 @@ interface CompilableTrack {
   volume: number;
   muted: boolean;
   solo: boolean;
+  params?: TrackParams;
 }
 
 interface CompilableTrackJson {
@@ -97,6 +98,9 @@ function splitTopLevelArgs(source: string): string[] {
   return parts;
 }
 
+// TASK-20: tracks con params caen a código-manual (deuda conocida):
+// el regex de parseTrackExpression solo reconoce s("...").gain(n), así que cualquier
+// cadena adicional (.room(), .lpf(), note().s()...) devuelve null.
 function parseTrackExpression(source: string, previousTrack: Track | undefined, index: number): Track | null {
   const match = source.match(/^s\(\s*"((?:[^"\\]|\\.)*)"\s*\)\.gain\(\s*(-?\d+(?:\.\d+)?)\s*\)$/);
   if (!match) {
@@ -186,6 +190,47 @@ function resolveSample(track: CompilableTrack): string {
   return 'perc';
 }
 
+const MAX_DELAY_FEEDBACK = 0.9; // BR-NEW-003: >= 1 crea un bucle infinito de audio
+
+/**
+ * Traduce TrackParams a métodos Strudel encadenados.
+ * Orden fijo: ADSR → filtro → room → delay/delaytime/delayfeedback → pan
+ * (el gain lo añade el llamador antes). Los campos undefined no emiten nada; 0 sí.
+ *
+ * @see BR-NEW-003 delayfeedback se trunca a 0.9
+ */
+export function buildParamsChain(params: TrackParams | undefined): string {
+  if (!params) return '';
+  const parts: string[] = [];
+
+  if (params.attack !== undefined) parts.push(`.attack(${params.attack})`);
+  if (params.decay !== undefined) parts.push(`.decay(${params.decay})`);
+  if (params.sustain !== undefined) parts.push(`.sustain(${params.sustain})`);
+  if (params.release !== undefined) parts.push(`.release(${params.release})`);
+
+  if (params.filterCutoff !== undefined) {
+    const isHp = params.filterType === 'hp';
+    parts.push(`.${isHp ? 'hpf' : 'lpf'}(${params.filterCutoff})`);
+    // Resonance method must match the filter: hpq for hpf, lpq for lpf.
+    if (params.filterQ !== undefined) parts.push(`.${isHp ? 'hpq' : 'lpq'}(${params.filterQ})`);
+  }
+
+  if (params.room !== undefined) parts.push(`.room(${params.room})`);
+
+  // delaytime/delayfeedback only make sense with a delay send
+  if (params.delay !== undefined) {
+    parts.push(`.delay(${params.delay})`);
+    if (params.delaytime !== undefined) parts.push(`.delaytime(${params.delaytime})`);
+    if (params.delayfeedback !== undefined) {
+      parts.push(`.delayfeedback(${Math.min(params.delayfeedback, MAX_DELAY_FEEDBACK)})`);
+    }
+  }
+
+  if (params.pan !== undefined) parts.push(`.pan(${params.pan})`);
+
+  return parts.join('');
+}
+
 // Temporal contract:
 // - cpm(bpm) sets 1 cycle = 1 quarter note (negra) at the given BPM
 // - Our 16-step sequencer = 16 sixteenth notes = 4 quarter notes = 1 bar
@@ -208,9 +253,19 @@ export function compileToStrudel(trackJson: CompilableTrackJson): string {
     // BR-001: muted/non-solo tracks stay in the stack with gain(0) so Strudel
     // never restructures the voice graph — avoids clicks and pops on toggle
     const silenced = track.muted || (hasSolo && !track.solo);
-    const pattern = stepsToPattern(resolveSample(track), track.steps);
     const gain = silenced ? 0 : track.volume;
-    return `s("${pattern}").gain(${gain.toFixed(2)})`;
+    const params = track.params;
+    const chain = buildParamsChain(params);
+
+    // BR-NEW-002: note only applies to oscillator synths; the 16 steps become the gate.
+    if (params?.synth && params.synth !== 'sample') {
+      const note = params.note ?? 'c3';
+      const gate = track.steps.map((step) => (step === 1 ? 'x' : '~')).join(' ');
+      return `note("${note}").s("${params.synth}").struct("${gate}").gain(${gain.toFixed(2)})${chain}`;
+    }
+
+    const pattern = stepsToPattern(resolveSample(track), track.steps);
+    return `s("${pattern}").gain(${gain.toFixed(2)})${chain}`;
   });
 
   const stackCode = codeBlocks.length > 0 ? `stack(${codeBlocks.join(", ")})` : 'silence';

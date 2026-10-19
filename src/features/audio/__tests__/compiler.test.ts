@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { compileToStrudel, parseStrudelToTrackJson } from '@features/audio/compiler'
-import type { TrackJSON } from '@lib/types'
+import type { TrackJSON, TrackParams } from '@lib/types'
 
 describe('compiler — compileToStrudel: TrackJSON → Strudel code', () => {
   describe('happy path — single track', () => {
@@ -574,5 +574,95 @@ describe('compiler — compileToStrudel: TrackJSON → Strudel code', () => {
 
       expect(parsed).toBeNull()
     })
+  })
+})
+
+describe('TASK-20: TrackParams → Strudel (compilador)', () => {
+  const steps = [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0] as (0 | 1)[]
+  const bdPattern = 'bd ~ ~ ~ bd ~ ~ ~ bd ~ ~ ~ bd ~ ~ ~'
+  const compileOne = (params?: TrackParams) => {
+    const pattern: TrackJSON = {
+      bpm: 120,
+      tracks: [{ id: 'k', name: 'Kick', tag: 'kick', steps, volume: 0.85, muted: false, solo: false, params }],
+    }
+    return compileToStrudel(pattern)
+  }
+  const wrap = (block: string) => `stack(${block}).slow(4).cpm(120.00)`
+
+  it('AC-1: sin params → salida idéntica a la actual', () => {
+    expect(compileOne()).toBe(wrap(`s("${bdPattern}").gain(0.85)`))
+  })
+
+  it('AC-2: sample + room + delay → métodos encadenados en orden', () => {
+    expect(compileOne({ room: 0.6, delay: 0.25, delaytime: 0.5, delayfeedback: 0.4, pan: 0.3 })).toBe(
+      wrap(`s("${bdPattern}").gain(0.85).room(0.6).delay(0.25).delaytime(0.5).delayfeedback(0.4).pan(0.3)`),
+    )
+  })
+
+  it('AC-3: sample + ADSR + lpf', () => {
+    expect(
+      compileOne({ attack: 0.1, decay: 0.2, sustain: 0.8, release: 0.5, filterType: 'lp', filterCutoff: 800, filterQ: 5 }),
+    ).toBe(wrap(`s("${bdPattern}").gain(0.85).attack(0.1).decay(0.2).sustain(0.8).release(0.5).lpf(800).lpq(5)`))
+  })
+
+  it('AC-4: synth sine + note + steps → note().s().struct().gain()', () => {
+    expect(compileOne({ synth: 'sine', note: '<c2 eb2>' })).toBe(
+      wrap('note("<c2 eb2>").s("sine").struct("x ~ ~ ~ x ~ ~ ~ x ~ ~ ~ x ~ ~ ~").gain(0.85)'),
+    )
+  })
+
+  it('AC-4: synth sin note usa c3 por defecto', () => {
+    expect(compileOne({ synth: 'square' })).toContain('note("c3").s("square")')
+  })
+
+  it('BR-NEW-002: note se ignora con synth sample o sin synth', () => {
+    expect(compileOne({ synth: 'sample', note: 'c2' })).toBe(wrap(`s("${bdPattern}").gain(0.85)`))
+    expect(compileOne({ note: 'c2' })).toBe(wrap(`s("${bdPattern}").gain(0.85)`))
+  })
+
+  it('AC-5: filterType hp → hpf() + hpq()', () => {
+    const code = compileOne({ filterType: 'hp', filterCutoff: 400, filterQ: 3 })
+    expect(code).toContain('.hpf(400).hpq(3)')
+    expect(code).not.toContain('lpq')
+  })
+
+  it('AC-6: campo undefined no emite método, 0 sí', () => {
+    const code = compileOne({ room: 0, pan: undefined })
+    expect(code).toContain('.room(0)')
+    expect(code).not.toContain('.pan(')
+  })
+
+  it('AC-7: delayfeedback se trunca a 0.9 si supera el límite', () => {
+    expect(compileOne({ delay: 0.3, delayfeedback: 1.5 })).toContain('.delayfeedback(0.9)')
+  })
+
+  it('AC-8: delaytime sin delay no se emite', () => {
+    const code = compileOne({ delaytime: 0.5, delayfeedback: 0.4 })
+    expect(code).not.toContain('delaytime')
+    expect(code).not.toContain('delayfeedback')
+  })
+
+  it('AC-9: orden de encadenamiento correcto con todos los params', () => {
+    const code = compileOne({
+      pan: 0.5, delayfeedback: 0.3, delaytime: 0.25, delay: 0.2, room: 0.1,
+      filterQ: 2, filterCutoff: 900, release: 0.4, sustain: 0.5, decay: 0.1, attack: 0.01,
+    })
+    const order = ['.gain(', '.attack(', '.decay(', '.sustain(', '.release(', '.lpf(', '.lpq(', '.room(', '.delay(', '.delaytime(', '.delayfeedback(', '.pan(']
+    const positions = order.map((m) => code.indexOf(m))
+    expect(positions.every((p) => p >= 0)).toBe(true)
+    expect([...positions].sort((a, b) => a - b)).toEqual(positions)
+  })
+
+  it('AC-10: parseStrudelToTrackJson devuelve null con params en la cadena', () => {
+    expect(parseStrudelToTrackJson(compileOne({ room: 0.6 }))).toBeNull()
+    expect(parseStrudelToTrackJson(compileOne({ synth: 'sine' }))).toBeNull()
+  })
+
+  it('mute/solo siguen aplicando gain(0) en modo synth', () => {
+    const code = compileToStrudel({
+      bpm: 120,
+      tracks: [{ steps, volume: 0.8, muted: true, solo: false, params: { synth: 'sine' } }],
+    })
+    expect(code).toContain('.gain(0.00)')
   })
 })

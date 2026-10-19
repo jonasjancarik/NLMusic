@@ -1,3 +1,5 @@
+import { STRUDEL_INJECTION } from "./strudelInjection";
+
 /**
  * Construye el prompt de sistema para el generador musical con soporte de operaciones delta.
  * El LLM devuelve operaciones incrementales en lugar de snapshots completos,
@@ -23,7 +25,8 @@ Output strictly valid JSON and nothing else. Do not wrap JSON in markdown fences
    { "type": "add", "track": { "id": string, "name": string, "sample": string, "steps": [16 values of 0|1], "volume": number 0..1, "muted": false, "solo": false } }
 
 2. UPDATE — modify an existing track by its id:
-   { "type": "update", "id": "<existing-track-id>", "patch": { ...partial Track fields (any subset) } }
+   { "type": "update", "id": "<existing-track-id>", "patch": { ...partial Track fields (any subset), optionally "params": { ...partial synth params, see below } } }
+   Example with params: { "type": "update", "id": "snare-1", "patch": { "params": { "room": 0.6 } } }
 
 3. REMOVE — delete a track by its id:
    { "type": "remove", "id": "<existing-track-id>" }
@@ -42,6 +45,8 @@ Output strictly valid JSON and nothing else. Do not wrap JSON in markdown fences
 - ALWAYS use "replace" — never use "add", "update" or "remove" in code mode.
 - Parse the provided Strudel code as your reference for what is currently playing and build upon it.
 - Translate the user request into a new complete pattern expressed as a replace operation.
+
+${STRUDEL_INJECTION}
 
 ## Common rules (both modes)
 - Maximum 5 tracks total after applying the delta (BR-006) — never add if there are already 5

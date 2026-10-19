@@ -118,3 +118,26 @@ describe('applyDelta — BR-004/BR-005/BR-006', () => {
     expect(result.warnings[0]).toContain('BR-006')
   })
 })
+
+describe('TASK-19: applyDelta — merge de params', () => {
+  it('fusiona params del patch sin perder los existentes', () => {
+    const current = {
+      bpm: 120,
+      tracks: [
+        {
+          id: 'kick-1',
+          name: 'Kick',
+          steps: Array(16).fill(0) as (0 | 1)[],
+          volume: 0.8,
+          muted: false,
+          solo: false,
+          params: { room: 0.6, delay: 0.3 },
+        },
+      ],
+    }
+    const { next } = applyDelta(current, {
+      operations: [{ type: 'update', id: 'kick-1', patch: { params: { room: 0 } } }],
+    })
+    expect(next.tracks[0].params).toEqual({ room: 0, delay: 0.3 })
+  })
+})

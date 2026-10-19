@@ -96,6 +96,7 @@ describe('TASK-15 - sessionStore slices regression', () => {
 
     expect(Object.keys(persisted).sort()).toEqual([
       'bpm',
+      'delayTimeMode',
       'editorMode',
       'hapVisualizationEnabled',
       'highlightingEnabled',
@@ -135,5 +136,15 @@ describe('TASK-15 - sessionStore slices regression', () => {
     expect(state.bpm).toBe(140)
     expect(state.tracks).toHaveLength(3)
     expect(state.language).toBe('en')
+  })
+})
+
+describe('TASK-19 - delayTimeMode', () => {
+  it('defaults to musical and can be changed', () => {
+    expect(useSessionStore.getState().delayTimeMode).toBe('musical')
+    useSessionStore.getState().setDelayTimeMode('free')
+    expect(useSessionStore.getState().delayTimeMode).toBe('free')
+    expect(JSON.parse(localStorage.getItem('nlmusic-session') ?? '{}').state.delayTimeMode).toBe('free')
+    useSessionStore.getState().setDelayTimeMode('musical')
   })
 })

@@ -150,4 +150,17 @@ describe('ClaudeAdapter — PatternDelta contract and legacy compatibility', () 
       expect(userPrompt).not.toContain('SOURCE OF TRUTH: Strudel code')
     })
   })
+
+  it('TASK-21: sends a system prompt that documents params', async () => {
+    createMock.mockResolvedValueOnce({
+      content: [{ type: 'text', text: JSON.stringify({ operations: [{ type: 'remove', id: 'kick-1' }] }) }],
+    })
+
+    await new ClaudeAdapter({ apiKey: 'test-key' }).generatePattern('remove the kick', context)
+
+    const { system } = createMock.mock.calls[0][0] as { system: string | { text?: string }[] }
+    const systemText = typeof system === 'string' ? system : system.map((block) => block.text ?? '').join('\n')
+    expect(systemText).toContain('params')
+    expect(systemText).toContain('delayfeedback >= 1')
+  })
 })
