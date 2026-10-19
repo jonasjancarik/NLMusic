@@ -3,6 +3,16 @@ import { renderHook, act } from '@testing-library/react'
 import { usePatternGen } from '@features/prompt/hooks/usePatternGen'
 import { useSessionStore } from '@store/sessionStore'
 import type { TrackJSON } from '@lib/types'
+import { patternToSong } from '@lib/song'
+
+/** TASK-27: la API devuelve la canción completa; los tests describen un patrón de una sección. */
+function songPayload(pattern: TrackJSON) {
+  return {
+    song: patternToSong(pattern),
+    activeSectionId: 'main',
+    ...(pattern.strudelCode ? { strudelCode: pattern.strudelCode } : {}),
+  }
+}
 
 // Mock global fetch
 global.fetch = vi.fn()
@@ -62,7 +72,7 @@ describe('usePatternGen — hook for LLM pattern generation', () => {
 
       vi.mocked(global.fetch).mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ ok: true, source: 'llm', trackJson: validResponse }),
+        json: async () => ({ ok: true, source: 'llm', ...songPayload(validResponse) }),
       } as any)
 
       const { result } = renderHook(() => usePatternGen())
@@ -94,7 +104,7 @@ describe('usePatternGen — hook for LLM pattern generation', () => {
 
       vi.mocked(global.fetch).mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ ok: true, source: 'llm', trackJson: validResponse }),
+        json: async () => ({ ok: true, source: 'llm', ...songPayload(validResponse) }),
       } as any)
 
       const { result } = renderHook(() => usePatternGen())
@@ -108,7 +118,7 @@ describe('usePatternGen — hook for LLM pattern generation', () => {
       expect(turns.some((t) => t.role === 'user' && t.content === 'kick pattern')).toBe(true)
     })
 
-    it('TASK-06: sends context.previous and never sends currentPattern alias', async () => {
+    it('TASK-27: sends context.song + activeSectionId and never sends currentPattern alias', async () => {
       const validResponse: TrackJSON = {
         bpm: 120,
         tracks: [
@@ -125,7 +135,7 @@ describe('usePatternGen — hook for LLM pattern generation', () => {
 
       vi.mocked(global.fetch).mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ ok: true, source: 'llm', trackJson: validResponse }),
+        json: async () => ({ ok: true, source: 'llm', ...songPayload(validResponse) }),
       } as any)
 
       const { result } = renderHook(() => usePatternGen())
@@ -136,10 +146,11 @@ describe('usePatternGen — hook for LLM pattern generation', () => {
 
       const requestInit = vi.mocked(global.fetch).mock.calls[0][1] as RequestInit
       const body = JSON.parse(String(requestInit.body)) as {
-        context: { previous?: unknown; currentPattern?: unknown }
+        context: { song?: { sections: unknown[] }; activeSectionId?: string; currentPattern?: unknown }
       }
 
-      expect(body.context.previous).toBeDefined()
+      expect(body.context.song?.sections.length).toBeGreaterThan(0)
+      expect(body.context.activeSectionId).toBeDefined()
       expect(body.context.currentPattern).toBeUndefined()
     })
 
@@ -161,7 +172,7 @@ describe('usePatternGen — hook for LLM pattern generation', () => {
         json: async () => ({
           ok: true,
           source: 'llm',
-          trackJson: limitedResponse,
+          ...songPayload(limitedResponse),
           warnings: ['Reemplazo propuso 7 pistas; se mantuvieron 5 (BR-006).'],
         }),
       } as unknown as Response)
@@ -197,7 +208,7 @@ describe('usePatternGen — hook for LLM pattern generation', () => {
           json: async () => ({
             ok: true,
             source: 'llm',
-            trackJson: {
+            ...songPayload({
               bpm: 120,
               tracks: [
                 {
@@ -209,7 +220,7 @@ describe('usePatternGen — hook for LLM pattern generation', () => {
                   solo: false,
                 },
               ],
-            },
+            }),
           }),
         } as unknown as Response
       })
@@ -235,7 +246,7 @@ describe('usePatternGen — hook for LLM pattern generation', () => {
           ok: true,
           source: 'fallback',
           warning: 'LLM returned invalid schema',
-          trackJson: {
+          ...songPayload({
             bpm: 138,
             tracks: [
               {
@@ -247,7 +258,7 @@ describe('usePatternGen — hook for LLM pattern generation', () => {
                 solo: false,
               },
             ],
-          },
+          }),
         }),
       } as any)
 
@@ -342,7 +353,7 @@ describe('usePatternGen — hook for LLM pattern generation', () => {
           json: async () => ({
             ok: true,
             source: 'llm',
-            trackJson: {
+            ...songPayload({
               bpm: 122,
               tracks: [
                 {
@@ -354,7 +365,7 @@ describe('usePatternGen — hook for LLM pattern generation', () => {
                   solo: false,
                 },
               ],
-            },
+            }),
           }),
         } as unknown as Response)
 
@@ -466,7 +477,7 @@ describe('usePatternGen — hook for LLM pattern generation', () => {
 
       vi.mocked(global.fetch).mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ ok: true, source: 'llm', trackJson: pipelineResponse }),
+        json: async () => ({ ok: true, source: 'llm', ...songPayload(pipelineResponse) }),
       } as any)
 
       const { result } = renderHook(() => usePatternGen())
@@ -494,10 +505,10 @@ describe('usePatternGen — hook for LLM pattern generation', () => {
         json: async () => ({
           ok: true,
           source: 'llm',
-          trackJson: {
+          ...songPayload({
             bpm: 120,
             tracks: [{ id: 'kick-1', name: 'Kick', steps: Array(16).fill(0) as (0 | 1)[], volume: 0.9, muted: false, solo: false }],
-          },
+          }),
         }),
       } as any)
 
@@ -517,9 +528,10 @@ describe('usePatternGen — hook for LLM pattern generation', () => {
       expect(body.context.codeMode?.strudelCode).toBe('stack(s("bd ~ ~ ~"))')
       expect(body.context.codeMode?.bpmHint).toBe(138)
       expect(body.context.previous).toBeUndefined()
+      expect((body.context as { song?: unknown }).song).toBeUndefined()
     })
 
-    it('sends previous context (not codeMode) when isCodeManuallyEdited is false', async () => {
+    it('sends song context (not codeMode) when isCodeManuallyEdited is false', async () => {
       useSessionStore.setState({
         isCodeManuallyEdited: false,
         currentCode: 'stack(s("bd ~ ~ ~"))',
@@ -532,10 +544,10 @@ describe('usePatternGen — hook for LLM pattern generation', () => {
         json: async () => ({
           ok: true,
           source: 'llm',
-          trackJson: {
+          ...songPayload({
             bpm: 120,
             tracks: [{ id: 'kick-1', name: 'Kick', steps: Array(16).fill(0) as (0 | 1)[], volume: 0.9, muted: false, solo: false }],
-          },
+          }),
         }),
       } as any)
 
@@ -547,10 +559,10 @@ describe('usePatternGen — hook for LLM pattern generation', () => {
 
       const requestInit = vi.mocked(global.fetch).mock.calls[0][1] as RequestInit
       const body = JSON.parse(String(requestInit.body)) as {
-        context: { previous?: unknown; codeMode?: unknown }
+        context: { song?: unknown; codeMode?: unknown }
       }
 
-      expect(body.context.previous).toBeDefined()
+      expect(body.context.song).toBeDefined()
       expect(body.context.codeMode).toBeUndefined()
     })
   })
@@ -578,7 +590,7 @@ describe('usePatternGen — hook for LLM pattern generation', () => {
 
       vi.mocked(global.fetch).mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ ok: true, source: 'llm', trackJson: normalizedPayload }),
+        json: async () => ({ ok: true, source: 'llm', ...songPayload(normalizedPayload) }),
       } as any)
 
       const { result } = renderHook(() => usePatternGen())
@@ -616,7 +628,7 @@ describe('usePatternGen — hook for LLM pattern generation', () => {
 
       vi.mocked(global.fetch).mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ ok: true, source: 'llm', trackJson: payload }),
+        json: async () => ({ ok: true, source: 'llm', ...songPayload(payload) }),
       } as any)
 
       const { result } = renderHook(() => usePatternGen())
@@ -647,7 +659,7 @@ describe('usePatternGen — hook for LLM pattern generation', () => {
 
       vi.mocked(global.fetch).mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ ok: true, source: 'llm', trackJson: validResponse }),
+        json: async () => ({ ok: true, source: 'llm', ...songPayload(validResponse) }),
       } as any)
 
       const { result } = renderHook(() => usePatternGen())

@@ -1,10 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { ClaudeAdapter } from '@lib/llm/adapters/claude.adapter';
-import { runV0Pipeline } from '@lib/llm/pipeline';
+import { runSongPipeline } from '@lib/llm/songPipeline';
+import { fallbackPattern } from '@lib/llm/fallbackPattern';
+import { contextSong } from '@lib/llm/prompts/songPrompt';
 import type { SessionContext } from '@lib/types';
 import { trackParamsSchema } from '@lib/llm/validation';
-import { MAX_TRACKS_PER_SECTION } from '@lib/song';
+import { MAX_TRACKS_PER_SECTION, compileSong, patternToSong, validateSong } from '@lib/song';
+
+/**
+ * Límite del código Strudel aceptado. Una canción de varias secciones compila a mucho
+ * más que un patrón de un compás (TASK-24 dejó 5000, que no alcanza).
+ */
+const MAX_STRUDEL_CODE_CHARS = 100_000;
+/** Límite del JSON de la canción enviada como contexto (BR-011: payload acotado). */
+const MAX_SONG_JSON_CHARS = 200_000;
 
 /**
  * Snapshot acotado de pistas previas aceptado por la API.
@@ -41,14 +51,17 @@ const requestBodySchema = z.object({
     previous: z.object({
       bpm: z.number().int().min(60).max(220),
       tracks: z.array(previousTrackSchema).max(MAX_TRACKS_PER_SECTION),
-      strudelCode: z.string().max(5000).optional(),
+      strudelCode: z.string().max(MAX_STRUDEL_CODE_CHARS).optional(),
     }).optional(),
     codeMode: z.object({
       enabled: z.literal(true),
-      strudelCode: z.string().max(5000),
+      strudelCode: z.string().max(MAX_STRUDEL_CODE_CHARS),
       bpmHint: z.number().int().min(60).max(220),
     }).optional(),
     language: z.enum(['es', 'en', 'mixed']).optional(),
+    // TASK-27: canción completa; se valida con validateSong más abajo.
+    song: z.unknown().optional(),
+    activeSectionId: z.string().min(1).max(100).optional(),
   }).optional(),
 });
 
@@ -98,12 +111,29 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // TASK-27: la canción del contexto debe ser válida; si no, el delta no tendría base fiable.
+    let song: SessionContext['song'];
+    if (context?.song !== undefined && !context.codeMode) {
+      if (JSON.stringify(context.song).length > MAX_SONG_JSON_CHARS) {
+        return NextResponse.json({ ok: false, error: 'Body inválido: canción demasiado grande' }, { status: 400 });
+      }
+      const validation = validateSong(context.song);
+      if (!validation.ok) {
+        return NextResponse.json(
+          { ok: false, error: 'Body inválido: canción no válida', details: validation.errors },
+          { status: 400 },
+        );
+      }
+      song = validation.song;
+    }
+
     const model = process.env.ANTHROPIC_MODEL;
     const provider = new ClaudeAdapter({ apiKey, model });
 
     /**
      * Normaliza el contexto para que el pipeline reciba una sola fuente de verdad.
-     * En modo código se descarta `previous` porque puede haber quedado obsoleto respecto al editor.
+     * En modo código se descartan `previous` y `song` porque pueden haber quedado
+     * obsoletos respecto al editor.
      * @see BR-009
      */
     const sessionContext: SessionContext = {
@@ -111,26 +141,54 @@ export async function POST(req: NextRequest) {
       previous: context?.codeMode ? undefined : context?.previous,
       codeMode: context?.codeMode,
       language: context?.language ?? 'mixed',
+      song,
+      activeSectionId: context?.activeSectionId,
     };
 
-    const result = await runV0Pipeline(provider, prompt, sessionContext);
+    const result = await runSongPipeline(provider, prompt, sessionContext);
 
-    if (result.usedFallback) {
-      // EC-001/EC-002: si falla LLM/red, mantener flujo con patrón fallback válido
+    if (result.ok) {
+      // LLM success — include any delta warnings (BR-005/BR-006)
       return NextResponse.json({
         ok: true,
-        trackJson: result.trackJson,
-        source: 'fallback' as const,
-        warning: result.error ?? 'LLM no disponible',
+        source: 'llm' as const,
+        song: result.song,
+        activeSectionId: result.activeSectionId,
+        strudelCode: result.strudelCode,
+        warnings: result.warnings,
       });
     }
 
-    // LLM success — include any delta warnings (BR-005/BR-006)
+    if (result.kind === 'invalid') {
+      // AC-3: tras los reintentos automáticos, ERROR con reintento manual (TASK-04).
+      // La canción actual se queda como está y sigue sonando (BR-001).
+      console.warn('[API] generate-pattern: invalid song after retries', result.errors);
+      return NextResponse.json(
+        {
+          ok: false,
+          error: `La IA no consiguió una canción válida tras ${result.attempts} intentos. Prueba otra vez o reformula la petición.`,
+          details: result.errors,
+        },
+        { status: 422 },
+      );
+    }
+
+    // EC-001/EC-002: si falla el proveedor y no hay nada que conservar, cargar el patrón
+    // de fallback para no bloquear la reproducción. Si ya hay una canción, no se sustituye:
+    // perderla por un fallo de red sería peor que mostrar el error con reintento.
+    const current = contextSong(sessionContext);
+    const hasContent = current?.sections.some((section) => section.tracks.length > 0) ?? false;
+    if (hasContent || sessionContext.codeMode) {
+      return NextResponse.json({ ok: false, error: result.error }, { status: 502 });
+    }
+    const fallbackSong = patternToSong(fallbackPattern());
     return NextResponse.json({
       ok: true,
-      trackJson: result.trackJson,
-      source: 'llm' as const,
-      warnings: result.warnings ?? [],
+      source: 'fallback' as const,
+      song: fallbackSong,
+      activeSectionId: fallbackSong.arrangement[0].sectionId,
+      strudelCode: compileSong(fallbackSong),
+      warning: result.error,
     });
   } catch (error) {
     console.error('[API] generate-pattern error:', error);

@@ -6,8 +6,9 @@ const { runV0PipelineMock, ClaudeAdapterMock } = vi.hoisted(() => ({
   ClaudeAdapterMock: vi.fn(),
 }))
 
-vi.mock('@lib/llm/pipeline', () => ({
-  runV0Pipeline: runV0PipelineMock,
+// TASK-27: la ruta usa el pipeline de canciones; el nombre del mock se conserva.
+vi.mock('@lib/llm/songPipeline', () => ({
+  runSongPipeline: runV0PipelineMock,
 }))
 
 vi.mock('@lib/llm/adapters/claude.adapter', () => ({
@@ -19,6 +20,16 @@ vi.mock('@lib/llm/adapters/claude.adapter', () => ({
 }))
 
 import { POST } from '../route'
+import { patternToSong } from '@lib/song'
+
+const kick = {
+  id: 'kick-1',
+  name: 'Kick',
+  steps: [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0] as (0 | 1)[],
+  volume: 0.9,
+  muted: false,
+  solo: false,
+}
 
 function makeRequest(body: unknown): Request {
   return new Request('http://localhost/api/generate-pattern', {
@@ -71,20 +82,11 @@ describe('POST /api/generate-pattern — TASK-06 contract coherence', () => {
 
   it('returns { ok: true, source: llm } with warnings on successful LLM response', async () => {
     runV0PipelineMock.mockResolvedValueOnce({
-      usedFallback: false,
-      trackJson: {
-        bpm: 128,
-        tracks: [
-          {
-            id: 'kick-1',
-            name: 'Kick',
-            steps: [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0],
-            volume: 0.9,
-            muted: false,
-            solo: false,
-          },
-        ],
-      },
+      ok: true,
+      attempts: 1,
+      song: patternToSong({ bpm: 128, tracks: [kick] }),
+      activeSectionId: 'main',
+      strudelCode: 'code',
       warnings: ['Reemplazo propuso 7 pistas; se mantuvieron 5 (BR-006).'],
     })
 
@@ -106,26 +108,13 @@ describe('POST /api/generate-pattern — TASK-06 contract coherence', () => {
     expect(payload.source).toBe('llm')
     expect(payload.warning).toBeUndefined()
     expect(payload.warnings).toHaveLength(1)
+    expect(payload.song.sections[0].tracks[0].id).toBe('kick-1')
+    expect(payload.activeSectionId).toBe('main')
+    expect(payload.strudelCode).toBe('code')
   })
 
   it('returns { ok: true, source: fallback, warning } when pipeline used fallback', async () => {
-    runV0PipelineMock.mockResolvedValueOnce({
-      usedFallback: true,
-      error: 'Network timeout',
-      trackJson: {
-        bpm: 138,
-        tracks: [
-          {
-            id: 'fallback-kick',
-            name: 'Kick 909',
-            steps: [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0],
-            volume: 0.85,
-            muted: false,
-            solo: false,
-          },
-        ],
-      },
-    })
+    runV0PipelineMock.mockResolvedValueOnce({ ok: false, kind: 'provider', error: 'Network timeout', attempts: 1 })
 
     const response = await POST(makeRequest({ prompt: 'kick', context: { turns: [] } }) as never)
     const payload = await response.json()
@@ -134,16 +123,71 @@ describe('POST /api/generate-pattern — TASK-06 contract coherence', () => {
     expect(payload.ok).toBe(true)
     expect(payload.source).toBe('fallback')
     expect(payload.warning).toContain('Network timeout')
-    expect(payload.trackJson).toBeDefined()
+    expect(payload.song.sections[0].tracks.length).toBeGreaterThan(0)
+    expect(payload.strudelCode).toContain('cpm')
+  })
+
+  it('TASK-27: provider error keeps an existing song (502, no fallback)', async () => {
+    runV0PipelineMock.mockResolvedValueOnce({ ok: false, kind: 'provider', error: 'Network timeout', attempts: 1 })
+
+    const response = await POST(makeRequest({
+      prompt: 'kick',
+      context: { turns: [], song: patternToSong({ bpm: 120, tracks: [kick] }) },
+    }) as never)
+    const payload = await response.json()
+
+    expect(response.status).toBe(502)
+    expect(payload.ok).toBe(false)
+    expect(payload.song).toBeUndefined()
+  })
+
+  it('TASK-27 AC-3: invalid song after retries → 422 with the concrete errors', async () => {
+    runV0PipelineMock.mockResolvedValueOnce({
+      ok: false,
+      kind: 'invalid',
+      errors: ['Section "verse" › track "kick" › steps: has 16 steps but must have 32'],
+      attempts: 3,
+    })
+
+    const response = await POST(makeRequest({ prompt: 'rock song', context: { turns: [] } }) as never)
+    const payload = await response.json()
+
+    expect(response.status).toBe(422)
+    expect(payload.ok).toBe(false)
+    expect(payload.error).toContain('3')
+    expect(payload.details[0]).toContain('Section "verse"')
+  })
+
+  it('TASK-27: passes song and activeSectionId to the pipeline', async () => {
+    runV0PipelineMock.mockResolvedValueOnce({
+      ok: true, attempts: 1, song: patternToSong({ bpm: 120, tracks: [kick] }), activeSectionId: 'main', strudelCode: 'c', warnings: [],
+    })
+    const song = patternToSong({ bpm: 120, tracks: [kick] })
+
+    await POST(makeRequest({ prompt: 'denser', context: { turns: [], song, activeSectionId: 'main' } }) as never)
+
+    expect(runV0PipelineMock).toHaveBeenCalledWith(
+      expect.anything(),
+      'denser',
+      expect.objectContaining({ song, activeSectionId: 'main' }),
+    )
+  })
+
+  it('TASK-27: returns 400 when context.song is not a valid song', async () => {
+    const response = await POST(makeRequest({
+      prompt: 'denser',
+      context: { song: { bpm: 120, stepsPerBar: 16, sections: [], arrangement: [] } },
+    }) as never)
+    const payload = await response.json()
+
+    expect(response.status).toBe(400)
+    expect(payload.ok).toBe(false)
+    expect(runV0PipelineMock).not.toHaveBeenCalled()
   })
 
   it('builds SessionContext using previous (not currentPattern alias)', async () => {
     runV0PipelineMock.mockResolvedValueOnce({
-      usedFallback: false,
-      trackJson: {
-        bpm: 120,
-        tracks: [],
-      },
+      ok: true, attempts: 1, song: patternToSong({ bpm: 120, tracks: [kick] }), activeSectionId: 'main', strudelCode: 'c', warnings: [],
     })
 
     const previous = {
@@ -231,7 +275,7 @@ describe('POST /api/generate-pattern — TASK-06 contract coherence', () => {
         previous: {
           bpm: 120,
           tracks: [],
-          strudelCode: 'x'.repeat(5001),
+          strudelCode: 'x'.repeat(100_001),
         },
       },
     }) as never)
@@ -270,8 +314,7 @@ describe('POST /api/generate-pattern — TASK-06 contract coherence', () => {
 
   it('TASK-09: propagates codeMode and clears previous when in code mode', async () => {
     runV0PipelineMock.mockResolvedValueOnce({
-      usedFallback: false,
-      trackJson: { bpm: 120, tracks: [] },
+      ok: true, attempts: 1, song: patternToSong({ bpm: 120, tracks: [kick] }), activeSectionId: 'main', strudelCode: 'c', warnings: [],
     })
 
     const codeMode = {

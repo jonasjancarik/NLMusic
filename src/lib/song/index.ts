@@ -9,3 +9,5 @@ export type { SongValidationError, SongValidationResult } from './validation';
 export * from './editing';
 export { locatePlayhead, cyclesToBars, msUntilNextBar, schedulerCps, DEFAULT_CPS } from './playhead';
 export type { PlayheadPosition } from './playhead';
+export { parseStepString, formatStepString, NOTATION_VELOCITY } from './notation';
+export type { ParsedSteps } from './notation';
