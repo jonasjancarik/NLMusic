@@ -6,3 +6,5 @@ export { patternToSong, findSection, replaceSectionTracks, totalBars, reconcileV
 export { compileSong } from './compileSong';
 export { validateSong, songSchema } from './validation';
 export type { SongValidationError, SongValidationResult } from './validation';
+export { parseStepString, formatStepString, NOTATION_VELOCITY } from './notation';
+export type { ParsedSteps } from './notation';

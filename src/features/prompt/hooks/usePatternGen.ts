@@ -1,6 +1,16 @@
 import { useCallback, useRef, useState } from 'react';
 import { useSessionStore } from '@store/sessionStore';
-import type { TrackJSON } from '@lib/types';
+import { selectSong } from '@store/helpers';
+import type { Song } from '@lib/types';
+
+/** Resumen corto de la canción para el historial de turnos. */
+function describeSong(song: Song): string {
+  const sections = song.sections.length;
+  const tracks = Math.max(...song.sections.map((section) => section.tracks.length));
+  return sections > 1
+    ? `${sections} secciones, hasta ${tracks} pistas, ${song.bpm} BPM`
+    : `${tracks} pistas a ${song.bpm} BPM`;
+}
 
 /**
  * Ejecuta la transición de reintento desde estado ERROR.
@@ -32,7 +42,7 @@ export function usePatternGen() {
   const lastError = useSessionStore((s) => s.lastError);
   const uiState = useSessionStore((s) => s.uiState);
   const isLoading = uiState === 'loading';
-  const loadPattern = useSessionStore((s) => s.loadPattern);
+  const loadGeneratedSong = useSessionStore((s) => s.loadGeneratedSong);
   const addTurn = useSessionStore((s) => s.addTurn);
   const startLoading = useSessionStore((s) => s.startLoading);
   const storeRetry = useSessionStore((s) => s.retry);
@@ -49,8 +59,8 @@ export function usePatternGen() {
     if (inFlightRef.current) return false;
     inFlightRef.current = true;
 
-    const { turns, bpm, tracks, currentCode, isCodeManuallyEdited } =
-      useSessionStore.getState();
+    const state = useSessionStore.getState();
+    const { turns, bpm, currentCode, isCodeManuallyEdited, activeSectionId } = state;
 
     startLoading();
     setInfo(null);
@@ -58,8 +68,8 @@ export function usePatternGen() {
     addTurn("user", prompt);
 
     // BR-009: construir contexto según modo activo
-    // En grid mode, `previous` tiene el snapshot fiable de tracks.
-    // En code mode, `tracks` puede estar desfasado — solo enviamos el código actual.
+    // En grid mode se envía la canción completa (TASK-27) y la sección seleccionada.
+    // En code mode la canción puede estar desfasada — solo enviamos el código actual.
     const contextPayload = isCodeManuallyEdited
       ? {
           turns,
@@ -68,7 +78,8 @@ export function usePatternGen() {
         }
       : {
           turns,
-          previous: { bpm, tracks, strudelCode: currentCode },
+          song: selectSong(state),
+          activeSectionId,
           language: "mixed",
         };
 
@@ -86,25 +97,28 @@ export function usePatternGen() {
         throw new Error(payload.error ?? `HTTP ${response.status}`);
       }
 
-      // Pipeline already normalized tracks and compiled strudelCode in a single pass (BR-009).
+      // The pipeline already validated the song and compiled strudelCode (BR-009).
       // Reuse the payload directly — no client-side normalization or recompilation (FIX-6).
-      const trackJson = payload.trackJson as TrackJSON;
-      loadPattern(trackJson);
+      const song = payload.song as Song;
+      loadGeneratedSong(song, {
+        activeSectionId: payload.activeSectionId,
+        strudelCode: payload.strudelCode,
+      });
 
       if (payload.source === 'fallback') {
         // EC-001/EC-002: fallback válido informa sin forzar estado ERROR
         const fallbackMsg = payload.warning ?? 'LLM no disponible — patrón de fallback cargado';
         setInfo(fallbackMsg);
-        addTurn("assistant", `Fallback: ${trackJson.tracks.length} pistas — ${fallbackMsg}`);
+        addTurn("assistant", `Fallback: ${describeSong(song)} — ${fallbackMsg}`);
       } else {
         // LLM success — surface any delta warnings (BR-005/BR-006)
         const warnings: string[] = Array.isArray(payload.warnings) ? payload.warnings : [];
         if (warnings.length > 0) {
           const warningText = warnings.join(" | ");
           setInfo(warningText);
-          addTurn("assistant", `Generado: ${trackJson.tracks.length} pistas a ${trackJson.bpm} BPM. Avisos: ${warningText}`);
+          addTurn("assistant", `Generado: ${describeSong(song)}. Avisos: ${warningText}`);
         } else {
-          addTurn("assistant", `Generado: ${trackJson.tracks.length} pistas a ${trackJson.bpm} BPM`);
+          addTurn("assistant", `Generado: ${describeSong(song)}`);
         }
       }
 
@@ -117,7 +131,7 @@ export function usePatternGen() {
     } finally {
       inFlightRef.current = false;
     }
-  }, [addTurn, loadPattern, setLastPrompt, startLoading, storeSetError]);
+  }, [addTurn, loadGeneratedSong, setLastPrompt, startLoading, storeSetError]);
 
   // BR-003: reintento — reutiliza lastPrompt del store sin que el usuario reescriba
   const retry = useCallback(() => {

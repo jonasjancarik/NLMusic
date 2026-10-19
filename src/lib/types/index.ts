@@ -11,4 +11,4 @@ export type {
   Song,
 } from './audio';
 export type { SessionTurn, SessionContext } from './session';
-export type { LLMProvider } from './api';
+export type { LLMProvider, SongLLMProvider, SongRepairRequest, SongGeneration } from './api';

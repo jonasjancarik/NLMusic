@@ -1,4 +1,4 @@
-import type { TrackJSON } from './audio';
+import type { Song, TrackJSON } from './audio';
 
 export interface SessionTurn {
   role: 'user' | 'assistant';
@@ -31,4 +31,12 @@ export interface SessionContext {
   previous?: TrackJSON;
   codeMode?: CodeModeContext;
   language?: 'es' | 'en' | 'mixed';
+  /**
+   * Canción completa (TASK-27). Si existe, es la base de los deltas de canción y
+   * `previous` se ignora. En code mode no se envía.
+   * @see CAP-NLM-015
+   */
+  song?: Song;
+  /** Sección que el usuario tiene seleccionada; destino por defecto de las operaciones de pista. */
+  activeSectionId?: string;
 }

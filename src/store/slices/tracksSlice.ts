@@ -35,6 +35,8 @@ export type TracksSlice = {
   arrangement: ArrangementItem[];
   activeSectionId: string;
   loadSong: (song: Song) => void;
+  /** Carga una canción generada por el LLM y arranca la reproducción (TASK-27). */
+  loadGeneratedSong: (song: Song, options?: { activeSectionId?: string; strudelCode?: string }) => void;
   setActiveSection: (sectionId: string) => void;
   setTracks: (tracks: Track[]) => void;
   setBpm: (bpm: number) => void;
@@ -109,6 +111,37 @@ export const createTracksSlice: StateCreator<
         isCodeManuallyEdited: false,
         isPlaying: nextIsPlaying,
         uiState: deriveUiState(tracks, nextIsPlaying),
+      };
+    }),
+
+  // BR-001: igual que loadPattern, sustituye el código sin parar el transporte.
+  /**
+   * Carga una canción ya validada por el pipeline (TASK-27). Conserva la sección que
+   * indica la respuesta (la que el delta tocó) para que el grid muestre el cambio, y
+   * reutiliza el código compilado en el servidor.
+   * @see BR-004
+   * @see BR-009
+   */
+  loadGeneratedSong: (song, options = {}) =>
+    set(() => {
+      const active =
+        findSection(song, options.activeSectionId ?? "") ??
+        findSection(song, song.arrangement[0]?.sectionId ?? "") ??
+        song.sections[0];
+      const tracks = active?.tracks ?? [];
+      const isPlaying = tracks.length > 0 || song.sections.some((section) => section.tracks.length > 0);
+      return {
+        bpm: song.bpm,
+        stepsPerBar: song.stepsPerBar,
+        sections: song.sections,
+        arrangement: song.arrangement,
+        activeSectionId: active?.id ?? DEFAULT_SECTION_ID,
+        tracks,
+        currentCode: options.strudelCode || compileCode(song),
+        isCodeManuallyEdited: false,
+        isPlaying,
+        uiState: isPlaying ? "playing" : "idle",
+        lastError: null,
       };
     }),
 

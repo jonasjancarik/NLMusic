@@ -1,28 +1,25 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { LLMProvider, SessionContext, PatternDelta } from "@lib/types";
+import type {
+  LLMProvider,
+  SessionContext,
+  PatternDelta,
+  SongGeneration,
+  SongLLMProvider,
+  SongRepairRequest,
+} from "@lib/types";
 import type { Track } from "@lib/types";
 import { buildSystemPrompt } from "../prompts/systemPrompt";
+import { buildRepairPrompt, buildSongSystemBlocks, buildSongUserPrompt } from "../prompts/songPrompt";
+import { parseLlmJson } from "../parseJson";
 
 const DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-4-6";
+// Una canción en notación compacta ocupa ~2–4k tokens; margen para canciones largas
+// sin pasar al streaming (por debajo de ~16k no hay riesgo de timeout HTTP).
+const SONG_MAX_TOKENS = 12000;
 
 interface ClaudeAdapterOptions {
   apiKey: string;
   model?: string;
-}
-
-function tryParseJson(raw: string): unknown {
-  const trimmed = raw.trim();
-
-  try {
-    return JSON.parse(trimmed);
-  } catch {
-    const first = trimmed.indexOf("{");
-    const last = trimmed.lastIndexOf("}");
-    if (first >= 0 && last > first) {
-      return JSON.parse(trimmed.slice(first, last + 1));
-    }
-    throw new Error("Claude did not return valid JSON.");
-  }
 }
 
 /**
@@ -105,7 +102,7 @@ function buildUserPrompt(prompt: string, context: SessionContext): string {
   return lines.join("\n");
 }
 
-export class ClaudeAdapter implements LLMProvider {
+export class ClaudeAdapter implements LLMProvider, SongLLMProvider {
   private readonly client: Anthropic;
   private readonly model: string;
 
@@ -138,7 +135,52 @@ export class ClaudeAdapter implements LLMProvider {
       throw new Error("Claude response has no text block.");
     }
 
-    const parsed = tryParseJson(textBlock.text);
+    const parsed = parseLlmJson(textBlock.text);
     return normalizeToDelta(parsed);
+  }
+
+  /**
+   * Genera un delta de canción (TASK-27). Devuelve el texto crudo: el pipeline lo
+   * parsea, lo valida y, si falla, vuelve a llamar con `repair`.
+   *
+   * - Sistema: contrato + guía de batería + params, estáticos; el último bloque lleva
+   *   cache_control, así que se cachea todo el prefijo (supera el mínimo de 1024 tokens
+   *   de claude-sonnet-4-6).
+   * - Reintento: la conversación sigue con la salida rechazada como turno del asistente
+   *   y los errores concretos como nuevo turno del usuario.
+   * - Sin `temperature` (TASK-17).
+   */
+  async generateSong(prompt: string, context: SessionContext, repair?: SongRepairRequest): Promise<SongGeneration> {
+    const blocks = buildSongSystemBlocks();
+    const messages: Anthropic.MessageParam[] = [{ role: "user", content: buildSongUserPrompt(prompt, context) }];
+    if (repair) {
+      messages.push(
+        { role: "assistant", content: repair.previousOutput || "(empty response)" },
+        { role: "user", content: buildRepairPrompt(repair) },
+      );
+    }
+
+    const response = await this.client.messages.create({
+      model: this.model,
+      max_tokens: SONG_MAX_TOKENS,
+      system: blocks.map((text, index) => ({
+        type: "text" as const,
+        text,
+        ...(index === blocks.length - 1 ? { cache_control: { type: "ephemeral" as const } } : {}),
+      })),
+      messages,
+    });
+
+    if (response.stop_reason === "refusal") {
+      throw new Error("Claude declined to generate this song.");
+    }
+    const text = response.content
+      .filter((block): block is Anthropic.TextBlock => block.type === "text")
+      .map((block) => block.text)
+      .join("");
+    if (!text) {
+      throw new Error("Claude response has no text block.");
+    }
+    return { text, truncated: response.stop_reason === "max_tokens" };
   }
 }
