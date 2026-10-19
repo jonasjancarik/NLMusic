@@ -5,6 +5,7 @@ import { Play, Square } from 'lucide-react';
 import { useSessionStore } from '@store/sessionStore';
 import { useTranslation } from '@lib/i18n';
 import { useStrudelContext } from '@features/audio';
+import { cyclesToBars, msUntilNextBar, schedulerCps } from '@lib/song';
 
 interface PlayControlsProps {
   disabled?: boolean;
@@ -24,7 +25,7 @@ interface PlayControlsProps {
  */
 export function PlayControls({ disabled = false, disabledReason }: PlayControlsProps) {
   const t = useTranslation();
-  const { play, stop, isReady } = useStrudelContext();
+  const { play, stop, isReady, getHapState } = useStrudelContext();
   const isPlaying = useSessionStore((s) => s.isPlaying);
   const setPlaying = useSessionStore((s) => s.setPlaying);
   const currentCode = useSessionStore((s) => s.currentCode);
@@ -47,9 +48,29 @@ export function PlayControls({ disabled = false, disabledReason }: PlayControlsP
       return;
     }
 
-    syncedCode.current = currentCode;
-    void play(currentCode);
-  }, [currentCode, isPlaying, isReady, play]);
+    const apply = () => {
+      syncedCode.current = currentCode;
+      void play(currentCode);
+    };
+
+    // TASK-25 AC-5: con la canción ya sonando, el cambio entra en el siguiente compás.
+    // Una edición posterior cancela la espera y manda la última versión.
+    let wait = 0;
+    if (syncedCode.current) {
+      try {
+        const { bpm } = useSessionStore.getState();
+        wait = msUntilNextBar(cyclesToBars(getHapState?.().getTime() ?? 0, bpm, schedulerCps()), bpm);
+      } catch {
+        wait = 0;
+      }
+    }
+    if (wait <= 0) {
+      apply();
+      return;
+    }
+    const timer = window.setTimeout(apply, wait);
+    return () => window.clearTimeout(timer);
+  }, [currentCode, isPlaying, isReady, play, getHapState]);
 
   const handlePlayToggle = async () => {
     // EC-010: no-op si el motor no está disponible

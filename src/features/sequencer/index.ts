@@ -5,3 +5,6 @@ export { StepButton } from './components/StepButton';
 export { MiniWaveform } from './components/MiniWaveform';
 export { VolumeSlider } from './components/VolumeSlider';
 export { useUpdateTrackParams } from './hooks/useUpdateTrackParams';
+export { SectionTabs } from './components/SectionTabs';
+export { ArrangementStrip } from './components/ArrangementStrip';
+export { usePlayhead } from './hooks/usePlayhead';

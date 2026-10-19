@@ -1,10 +1,12 @@
 'use client';
 
 import { useSessionStore } from '@store/sessionStore';
-import { useBeatClock } from '@features/audio';
 import { useTranslation } from '@lib/i18n';
 import { MAX_TRACKS_PER_SECTION } from '@lib/song';
 import { TrackCard } from './TrackCard';
+import { SectionTabs } from './SectionTabs';
+import { ArrangementStrip } from './ArrangementStrip';
+import { usePlayhead } from '../hooks/usePlayhead';
 
 /**
  * Muestra las pistas activas y el contador de ocupación del secuenciador.
@@ -17,12 +19,25 @@ export function TrackZone() {
   const t = useTranslation();
   const tracks = useSessionStore((s) => s.tracks);
   const isCodeManuallyEdited = useSessionStore((s) => s.isCodeManuallyEdited);
-  const { step } = useBeatClock();
+  const activeSectionId = useSessionStore((s) => s.activeSectionId);
+  const playhead = usePlayhead();
+  // Solo se resalta el compás y el paso si la sección que suena es la que se ve en el grid.
+  const gridPlayhead =
+    playhead && playhead.sectionId === activeSectionId
+      ? { bar: playhead.barInSection, step: playhead.stepInBar }
+      : null;
+  const songChrome = (
+    <>
+      <SectionTabs playingSectionId={playhead?.sectionId ?? null} />
+      <ArrangementStrip playhead={playhead} />
+    </>
+  );
   const atLimit = tracks.length >= MAX_TRACKS_PER_SECTION;
 
   if (tracks.length === 0) {
     return (
       <div className="flex h-full flex-col overflow-y-auto">
+        {songChrome}
         {/* BR-006: el contador sigue visible aunque todavía no existan pistas. */}
         <div className="flex items-center justify-end px-5 pt-3 pb-1">
           <span
@@ -42,6 +57,7 @@ export function TrackZone() {
 
   return (
     <div className="flex h-full flex-col overflow-y-auto">
+      {songChrome}
       {/* EC-004: alcanzar el límite de pistas cambia el contador a amber para señalar el límite. */}
       <div className="flex items-center justify-end px-5 pt-3 pb-1">
         <span
@@ -65,7 +81,7 @@ export function TrackZone() {
         style={{ opacity: isCodeManuallyEdited ? 0.5 : 1 }}
       >
         {tracks.map((track) => (
-          <TrackCard key={track.id} track={track} activeStep={step} />
+          <TrackCard key={track.id} track={track} playhead={gridPlayhead} />
         ))}
       </div>
     </div>

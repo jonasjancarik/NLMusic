@@ -7,6 +7,7 @@ import type { Track } from '@lib/types'
 
 vi.mock('@features/audio', () => ({
   useBeatClock: vi.fn(() => ({ step: 0 })),
+  useStrudelContext: vi.fn(() => ({ getHapState: () => ({ getTime: () => 0 }) })),
 }))
 
 vi.mock('../TrackCard', () => ({
