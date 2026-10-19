@@ -1,0 +1,9 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`compileSong — TASK-24 AC-5 > snapshot: verse/chorus song with repeats 1`] = `
+"arrange(
+  [4, stack(s("bd ~ ~ ~ ~ ~ ~ ~ bd ~ ~ ~ ~ ~ ~ ~ bd ~ ~ ~ ~ ~ ~ ~ bd ~ bd ~ ~ ~ ~ ~").gain(0.80), s("~ ~ ~ ~ sd ~ ~ ~ ~ ~ ~ ~ sd ~ ~ ~ ~ ~ ~ ~ sd ~ ~ ~ ~ ~ ~ ~ sd ~ ~ ~").gain(0.80).velocity("~ ~ ~ ~ 1 ~ ~ ~ ~ ~ ~ ~ 1 ~ ~ ~ ~ ~ ~ ~ 0.3 ~ ~ ~ ~ ~ ~ ~ 0.3 ~ ~ ~"), s("hh ~ hh ~ hh ~ hh ~ hh ~ hh ~ hh ~ hh ~ hh ~ hh ~ hh ~ hh ~ hh ~ hh ~ hh ~ hh ~").gain(0.80)).slow(2)],
+  [4, stack(s("bd ~ ~ ~ bd ~ ~ ~ bd ~ ~ ~ bd ~ ~ ~").gain(0.80), s("~ ~ ~ ~ sd ~ ~ ~ ~ ~ ~ ~ sd ~ ~ ~").gain(0.80).room(0.4), s("cr ~ cr ~ cr ~ cr ~ cr ~ cr ~ cr ~ cr ~").gain(0.50), s("hh:1 ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~").gain(0.80))],
+  [2, stack(s("bd ~ ~ ~ ~ ~ ~ ~ bd ~ ~ ~ ~ ~ ~ ~ bd ~ ~ ~ ~ ~ ~ ~ bd ~ bd ~ ~ ~ ~ ~").gain(0.80), s("~ ~ ~ ~ sd ~ ~ ~ ~ ~ ~ ~ sd ~ ~ ~ ~ ~ ~ ~ sd ~ ~ ~ ~ ~ ~ ~ sd ~ ~ ~").gain(0.80).velocity("~ ~ ~ ~ 1 ~ ~ ~ ~ ~ ~ ~ 1 ~ ~ ~ ~ ~ ~ ~ 0.3 ~ ~ ~ ~ ~ ~ ~ 0.3 ~ ~ ~"), s("hh ~ hh ~ hh ~ hh ~ hh ~ hh ~ hh ~ hh ~ hh ~ hh ~ hh ~ hh ~ hh ~ hh ~ hh ~ hh ~").gain(0.80)).slow(2)]
+).slow(4).cpm(120.00)"
+`;

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MAX_TRACKS_PER_SECTION } from "@lib/song/constants";
 
 const stepSchema = z.union([z.literal(0), z.literal(1)]);
 
@@ -6,7 +7,7 @@ const stepSchema = z.union([z.literal(0), z.literal(1)]);
  * Parámetros de síntesis opcionales por pista.
  * @see BR-NEW-003 delayfeedback tiene tope 0.9 para evitar bucles infinitos de audio
  */
-const trackParamsSchema = z.object({
+export const trackParamsSchema = z.object({
   synth: z.enum(['sample', 'sine', 'sawtooth', 'square', 'triangle']).optional(),
   note: z.string().optional(),
   attack: z.number().min(0).max(2).optional(),
@@ -34,6 +35,8 @@ const trackSchema = z.object({
   tag: z.string().min(1).optional(),
   sample: z.string().min(1).optional(),
   steps: z.array(stepSchema).length(16),
+  // TASK-24: dinámica por paso (0–1), una por paso
+  velocity: z.array(z.number().min(0).max(1)).length(16).optional(),
   volume: z.number().min(0).max(1),
   muted: z.boolean(),
   solo: z.boolean(),
@@ -42,8 +45,8 @@ const trackSchema = z.object({
 
 export const trackJsonSchema = z.object({
   bpm: z.number().int().min(60).max(220),
-  // BR-006: el contrato validado nunca acepta más de 5 pistas.
-  tracks: z.array(trackSchema).min(1).max(5),
+  // BR-006: el contrato validado nunca acepta más pistas que el límite por sección.
+  tracks: z.array(trackSchema).min(1).max(MAX_TRACKS_PER_SECTION),
   strudelCode: z.string().optional()
 });
 
@@ -88,7 +91,7 @@ export type ParsedPatternDelta = z.infer<typeof patternDeltaSchema>;
 /**
  * Valida la respuesta cruda del LLM contra el schema del dominio.
  * @see BR-002 El LLM debe cumplir el schema definido
- * @see BR-006 Máximo 5 pistas por patrón
+ * @see BR-006 Máximo MAX_TRACKS_PER_SECTION (8) pistas por sección
  */
 export function validateTrackJson(input: unknown): ParsedTrackJSON {
   return trackJsonSchema.parse(input);

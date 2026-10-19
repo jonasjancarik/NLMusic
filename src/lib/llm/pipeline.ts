@@ -1,5 +1,5 @@
 import type { LLMProvider, SessionContext, TrackJSON } from "@lib/types";
-import { compileToStrudel } from "@features/audio";
+import { compileToStrudel } from "@lib/strudel/compiler";
 import { validatePatternDelta } from "./validation";
 import { applyDelta } from "./applyDelta";
 import { fallbackPattern } from "./fallbackPattern";

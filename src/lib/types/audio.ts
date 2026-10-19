@@ -36,6 +36,11 @@ export interface Track {
   tag?: TrackTag;
   sample?: string;
   steps: (0 | 1)[];
+  /**
+   * Dinámica por paso (0–1), misma longitud que `steps` (TASK-24).
+   * Si falta, cada paso activo suena con velocity 1. Se multiplica por `volume`.
+   */
+  velocity?: number[];
   volume: number;
   muted: boolean;
   solo: boolean;
@@ -46,6 +51,42 @@ export interface TrackJSON {
   bpm: number;
   tracks: Track[];
   strudelCode?: string;
+}
+
+/** Pasos por compás: 16 = semicorcheas, 12 = feel ternario (tresillos de corchea). 4/4 fijo en v1. */
+export type StepsPerBar = 16 | 12;
+
+/**
+ * Sección de una canción (intro, verso, estribillo…). Cada pista tiene
+ * `stepsPerBar * bars` pasos.
+ * @see CAP-NLM-015
+ */
+export interface Section {
+  id: string;
+  name: string;
+  /** 1–16 compases */
+  bars: number;
+  /** Máximo MAX_TRACKS_PER_SECTION (BR-006) */
+  tracks: Track[];
+}
+
+/** Bloque del arreglo: una sección repetida `repeat` veces (1–16). */
+export interface ArrangementItem {
+  sectionId: string;
+  repeat: number;
+}
+
+/**
+ * Canción completa: secciones + orden de reproducción.
+ * Un patrón antiguo (`TrackJSON`) equivale a una canción con una sección `main` de 1 compás.
+ * @see CAP-NLM-015
+ */
+export interface Song {
+  bpm: number;
+  /** v1: no se puede cambiar una vez creada la canción; hay que sustituir la canción entera. */
+  stepsPerBar: StepsPerBar;
+  sections: Section[];
+  arrangement: ArrangementItem[];
 }
 
 // BR-004: incremental operations so the LLM can add/update/remove/replace tracks

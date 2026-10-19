@@ -48,8 +48,8 @@ describe('validateTrackJson — alias resolution + schema smoke test', () => {
     expect(() => validateTrackJson({ bpm: 120, tracks: [badTrack] })).toThrow()
   })
 
-  it('throws on more than 5 tracks (BR-006)', () => {
-    const tracks = Array.from({ length: 6 }, (_, i) => ({ ...minimalTrack, id: `t-${i}` }))
+  it('throws on more than 8 tracks (BR-006)', () => {
+    const tracks = Array.from({ length: 9 }, (_, i) => ({ ...minimalTrack, id: `t-${i}` }))
     expect(() => validateTrackJson({ bpm: 120, tracks })).toThrow()
   })
 
